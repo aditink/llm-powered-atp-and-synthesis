@@ -1,0 +1,47 @@
+You are given a differential game logic (dGL) loop and a desired postcondition that Angel (the controller) aims to maintain.
+
+An inductive invariant has already been established, but we want to expand it to cover a larger set of conditions where Angel can maintain controllability.
+Your task is to propose a succinct plan describing the Angel's control strategy to remain safe under broadened initial conditions by expanding the loop invariant.
+We will later use this plan to derive the broadened initial conditions.
+
+Background on dGL:
+{% include 'DGlSyntax.jinja' %}
+{% include 'LabelSyntax.jinja' %}
+
+You are given:
+- The full loop.
+- The postcondition that Angel aims to maintain.
+- A previously proven invariant.
+- A prior analysis of Angel vs. Demon controls and control modes.
+
+Goal:
+Produce a strategy that either:
+1. Safely reaches the already established invariant region (reach-avoid problem), or
+2. Establishes a different inductive strategy that keeps Angel safe forever if the existing invariant is insufficient.
+
+Keep the strategy simple and minimalist. Avoid unnecessarily long or involved control strategies.
+
+Requirements for the plan:
+- State whether your plan is in itself inductive ('self-inductive'), or aims to reach the existing invariant ('reach-expansion').
+- Then state any initial conditions/assumptions the plan relies on, and what control mode it starts in. You must choose exactly one control mode to start in so as to make subsequent analysis easier. If the control mode requires specific initial conditions, this should be part of your assumptions.
+- After this, list Angel's strategy as a sequence of steps, corresponding to control modes.
+    * Each step should start with an action word (e.g., "Choose", "Set", "Switch to"), possibly with a conditional clause (e.g., "When X holds"). End with a temporal indicator (e.g., "repeatedly", "until Y", "forever").
+    * Each step should focus on Angel's actions. Mention Demon only when necessary to motivate Angel's tactics, or when he forces a mode change.
+    * Expect to transition between modes mainly by using Angel's controllable actions and choices.
+    * Use clear English, no mathematical notation unless necessary for clarity. This will later be translated into formal constraints.
+    * Produce a numbered list of Angel's decisions.
+    * Be as concise as possible without superfluous words. Aim for no more than ~120 words.
+    * Avoid hedging or verbose meta-commentary; write only Angel's action steps.
+
+The input includes the full loop and, when available, a prior analysis identifying Angel vs. Demon controls. Use that analysis to tailor the plan to likely adversarial behavior.
+
+{% include 'ReasoningTips.jinja' %}
+
+Output Structure:
+- Start with a one-line comment on what new region the strategy is trying to cover.
+- Then write section per the requirements listed above.
+    * State what kind of plan it is (self-inductive vs reach-expansion).
+    * Write a description of initial conditions/assumptions, and mode.
+    * Then proceed with the plan steps.
+
+You will be shown zero or more examples of how to answer, followed by a new question to answer.

@@ -1,0 +1,30 @@
+Your task is to analyze a game and identify which actions are taken by the Angel (controllable player) versus the Demon (adversarial player).
+
+## Background Information
+
+{% include 'DGlSyntax.jinja' %}
+
+{% include 'LabelSyntax.jinja' %}
+
+## Input
+
+You will be provided a dGL game.
+
+## Output
+
+Your analysis should identify:
+1. What actions or decisions are under Angel's control in the game.
+2. What actions or decisions are under Demon's control in the game.
+3. The control modes in the game, that is, regions of different qualitative behavior (e.g. growth vs. oscillation vs. decay vs. equilibrium).
+The modes are typically defined by two things: (1) initial conditions inducing different qualitative behavior in the dynamics, and (2) control actions leading to different possible values of variables. Comment about the asymptotes or polynomial invariants of each mode, when relevant.
+4. The overall control pattern in the game.
+
+## Further Instructions
+
+Provide your analysis as clear, readable text describing the Angel and Demon actions, and control modes. Be specific about what choices each player makes and how they might interact.
+Structure it into the sections corresponding to the points above.
+Be as concise as possible while still being clear, with no superfluous or filler text or hedging.
+
+{% include 'ReasoningTips.jinja' %}
+
+You will now be provided with 0 or more examples of games and their analysis, followed by a new game that you must analyze.

@@ -1,0 +1,54 @@
+Your task is to guess the precondition of a nondeterministic assignment given the assignment specification and the postcondition.
+
+This is a step in the process of finding preconditions over an entire dGL game that contains the loop.
+You should provide a precondition that is logically sound according to the semantics of differential dynamic logic.
+You will be given the assignment, postcondition, and context such as the overall game in which the ODE appears and the strategy that Angel is trying to execute.
+Your job is to come up with a suitable precondition for the ODE in light of this information.
+
+## Background information
+
+Here is some information about dGL.
+
+{% include 'DGlSyntax.jinja' %}
+
+A *precondition* for a given game is a logical formula that, when it is true before the game starts, there exists a strategy for Angel to ensure that the *postcondition* holds after the game ends, regardless of how Demon plays.
+The precondition of a nondeterministic assignment depends on whether Angel or Demon controls the assignment.
+Consider for example the nondeterministic assignment game `x:=*`.
+
+If Angel controls it, she gets to choose any real number to assign to x.
+The weakest precondition given postcondition P is __exists x such that P__, that is the postcondition holds *for some* possible value that could be assigned to x.
+
+If Demon controls it, any real number can be assigned, outside our control.
+The weakest precondition for such an assignment with postcondition P is __for all x, P__.
+
+This quantification often simplifies in practice:
+- If P doesn't depend on x, then the precondition is simply P
+- If P(x) must hold for all values of x, consider what constraints this imposes on other variables.
+
+You should provide a quantifier-free, modality-free precondition that is logically sound, in that it should guarantee the postcondition after the assignment.
+You can take into account the strategy that Angel is trying to execute to make your job easier, since this may tell you already what values of x to try for Angel-controlled assignments, or what values of x Demon is likely to choose for Demon-controlled assignments.
+
+## Input
+
+You will be given the following inputs:
+1. The nondeterministic assignment game.
+2. The postcondition that must hold after the assignment ends.
+3. The overall game in which this assignment appears, and an analysis of its control roles and modes. From this context, you should figure out whether you are dealing with an Angel or Demon controlled assignment, and whether there are limitations of the values of variables, or control modes that make your job easier.
+4. Optionally, a log of previous computations for identifying preconditions for the whole game. Ultimately, you are trying to find preconditions in the whole game and this is just a sub-problem. This history may include failed attempts at guessing the precondition of this very assignment and postcondition, in which case you should pay special attention to see what went wrong and avoid repeating mistakes.
+
+## Output
+
+Return your answer as a logical formula in KeYmaera X syntax:
+- Use & for logical AND
+- Use | for logical OR  
+- Use ! for logical NOT
+- Use = for equality
+- Use <, <=, >, >= for comparisons
+- Use parentheses for grouping
+Use only variables you see in the problem. For example, if the problem has `x`, use `x`, not `x(0)`.
+
+Provide up to 4 lines describing your reasoning. Then after a blank line, write a code block with the precondition in KeYmaera X syntax.
+
+## Additional Advice
+
+{% include 'ReasoningTips.jinja' %}

@@ -1,0 +1,303 @@
+# Bellerophon Tactic Guide (KeYmaera X 5.1)
+
+## 1. Overview
+
+**KeYmaera X** proves properties of hybrid systems using differential dynamic logic (dL) or hybrid games using differential game logic (dGL).  
+A **tactic** is a small program that automatically applies proof rules.  
+**Bellerophon** is the language for writing these tactics.  
+The following are instructions to write one Bellerophon script, ideally that closes the proof in one run, or at least provides new information to write such a tactic later.
+
+---
+
+## 2. Proof State Basics
+
+To write good tactics, you should internally keep track of proof state. A tactic maps one proof state to another.
+A proof state consists of zero or more goals (subgoals). Each goal is a sequent consisting of an antecedent (assumptions) and a succedent (formulas to prove).
+
+### 2.1 Sequents and Antecedents in the KeYmaera X CLI
+
+A **sequent** in the CLI is written as:
+
+```
+-1:  x>=0	GreaterEqual
+-2:  y=0	Equal
+==> 1:  x>=0 GreaterEqual	
+```
+
+which corresponds to the following sequent in mathematical notation:
+```
+x>=0, y=0  |-  x>=0
+```
+
+Formulas are indexed.
+Negative indices indicate antecedent formulas, and positive indices indicate succedent formulas.
+
+The antecedent lists assumptions.
+The succedent lists formulas to prove.
+
+We can assume all antecedent formulas are true and must use them to prove at least one succedent formula.
+You just need to prove one succedent formula to close the goal.
+
+### 2.2 Goals and Subgoals
+    
+Tactics transform the current goal into zero or more subgoals.
+You apply tactics until no subgoals remain, which would indicate the theorem is proved.
+
+### 2.3 Formula Indexing
+
+Many tactics require a formula index.
+
+⸻
+
+## 3. Proving Interactions
+
+### 3.1 Branches (Multiple Goals)
+
+When a tactic creates multiple goals (e.g., from orL), the proof state has separate branches inside one printed block.
+
+Example pattern:
+
+===== State of Hard Cases ==== ElidingProvable(Provable{
+         -1:  <formula for case 1>  Or
+         -2:  <assumption>          Greater
+         ...
+      ==> 1:  <modal or post-condition>  Box
+        from
+         -1:  <formula for first disjunct>  And
+         ...
+      ==> 1:  <some goal 1>  Box
+        with
+         -1:  <formula for remaining disjuncts>  Or
+         ...
+      ==> 1:  <some goal 2>  Box}) =====
+print done (no progress, 1s)
+Done .
+
+Here:
+	•	The from part shows the first branch (e.g., first disjunct, such as a>=0 & ...).
+	•	The with part shows the other branch.
+	•	Each branch has its own sequent (==> line) with indexed formulas.
+
+Each branch is a separate goal that must be closed.
+
+You should check if a subgoal is closed by printing it. If the subgoal is proved, you should see something like:
+
+===== subgoal state ==== ElidingProvable(Provable{   -1:  x>0	Greater
+    ==> 1:  x>=0	GreaterEqual proved}) =====
+    print done (proved, 1s)
+
+### 3.2 Running and Rerunning Tactics; Printing State
+
+If you know of a tactic that you want to slightly modify, simply reuse the same text, and edit it as needed.
+
+To inspect the current proof state at any point, use the tactic:
+
+print("State of Hard Cases")
+
+This prints the current provable state (all goals and their indexed formulas) at the point where the tactic is invoked.
+Multiple print statements can be used in one tactic, to print the state at different points in the proof.
+The print message helps identify which part of the script produced that state.
+
+⸻
+
+## 4. Bellerophon Essentials
+	•	A script is a sequence of tactic expressions.
+	•	t1 ; t2 runs t1 then t2.
+	•	<(t1, t2) applies t1 to the first branch and t2 to the second branch. Note the absence of a closing angle bracket.
+	•	A tactic either:
+	    •	succeeds and may produce subgoals,
+	    •	fails, or
+	    •	closes the current goal.
+
+⸻
+
+## 5. Primitive Tactics
+
+### 5.1 Logical Tactics
+
+Common examples (indices refer to formulas in the sequent):
+	- Implication: implyR(i)
+        This transforms a goal of form |- A -> B into A |- B.
+	- Conjunction: andR(i),
+        This transforms a goal of form |- A & B into two subgoals: |- A and |- B.
+    - andL(i)
+        This transforms a goal of form A & B, Γ |- Δ into A, B, Γ |- Δ, where the i-th antecedent formula in the original subgoal was A & B.
+	- Disjunction: orR
+        This transforms a goal of form |- A | B into two subgoals: |- A and |- B.
+    - orL(i)
+        This transforms a goal of form A | B, Γ |- Δ into two subgoals: A, Γ |- Δ and B, Γ |- Δ, where the i-th antecedent formula in the original subgoal was A | B.
+	- Universal: allR
+        This transforms a goal of form |- ∀x. P(x) into |- P(y) for a fresh variable y.
+    - allL(i):
+        This transforms a goal of form ∀x. P(x), Γ |- Δ into P(t), Γ |- Δ for a term t, where the i-th antecedent formula in the original subgoal was ∀x. P(x).
+    - allL2R(i)
+        This transforms a goal of form x=e, Γ |- Δ, ∀x. P(x) into Γ |- Δ, P(e), where the i-th antecedent formula in the original subgoal was x=e.
+    - cut(formula)
+        This introduces formula as an intermediate lemma to prove.
+        It transforms a goal of form Γ |- Δ into two subgoals:
+        (1) Use subgoal: formula, Γ |- Δ
+        (2) Show subgoal: Γ |- formula.
+
+### 5.2 Program / Modal Tactics
+
+For modal formulas like [α]φ and ⟨α⟩φ, tactics handle:
+- assignments,
+- tests,
+- nondeterministic choice,
+- sequential composition,
+- duals.
+These reduce program structure to simpler logical or arithmetic goals. You will almost never need to use these low-level tactics directly, as they are all handled by the high-level `unfold` tactic.
+
+The loop rule, `loop("invariant", i)`, transforms a goal of form  Γ |- [α*]φ, Δ where [α*]φ is at index i into three subgoals:
+    1. init subgoal: Γ |- invariant, Δ
+    2. step subgoal: invariant |- [α]invariant
+    3. post subgoal: invariant |- φ
+Here, invariant is the (literal) formula you provide as a loop invariant.
+
+There is a second class of modality tactics used to simplify not the program inside the modality, but the postcondition after the modality or otherwise modify the modality. The most common are:
+- boxAnd(i)
+    Transforms a goal of form [a](P∧Q) to [a]P ∧ [a]Q. Usually followed by andR(i) to split into two subgoals.
+- GV(i)
+    Transforms a goal of form Γ |- [a]P, Δ to Γconst |- P, Δconst, where Γconst and Δconst are the subsets of Γ and Δ that contain only formulas with constants (no variables).
+- discreteGhost("x", "x0", i)
+    Adds a new variable x0 and the antecedent formula x = x0. The position, i, should be that of the modality formula (usually 1).
+
+### 5.3 Differential Equation Tactics
+
+For goals involving differential equations of the form:
+
+```
+[{x' = f(x) & Q}] P
+```
+
+you can use the following high-level ODE tactics:
+- dIRule(i) (Differential Invariant)
+    Applies a differential invariant rule to the ODE formula at index i.
+    This proves formulas like [ODE] P where P may contain any comparison operator (<, <=, =, >=, >).
+    The rule generates two proof obligations:
+	1.	The postcondition P holds initially, and
+	2.	The derivative condition P' satisfies the correct sign constraint (depending on the operator) throughout the ODE.
+	    For example, if in `[{x' = f(x) & Q}] P`,  P is p <= 0, the check is `Q |= [x':=f(x)] p' <= 0`;
+        if P is p > 0, the check is `Q |= [x':=f(x)] p' > 0`;
+        and similarly for the other operators.
+        Along with Q, any assumptions from the antecedents that had only constants (no variables) are also kept.
+        Note that you cannot use the invariant that you are trying to prove as an assumption in this subgoal, that is, you will not be able to assume p > 0 to prove p' > 0.
+    If these obligations are proved, the ODE is handled without solving it explicitly.
+
+- dC(“φ”, i) (Differential Cut)
+Adds an additional domain constraint φ to the ODE at index i.
+This transforms a goal with `[{x'=f(x) & Q}] P` at position i into two subgoals:
+    1. Use:
+    The formula at position i becomes `[{x'=f(x) & Q ∧ φ}] P`
+    2. Show:
+    The formula at position i becomes `[{x'=f(x) & Q}] φ`
+
+- dW(i) (Differential Weakening)
+Applies weakening to an ODE goal at index i.
+If the formula at index i was `[{x'=f(x) & Q}] P`, the new goal becomes `Q |- P`, which removes the ODE entirely. Along with Q, any assumptions from the antecedents that had only constants (no variables) are also kept.
+
+Tactic `discreteGhost("x", "x0", i)`, adds a new variable x0 and the antecedent formula x = x0. The position, i, should be that of the ODE formula (usually 1).
+
+Another useful tactic is the Darboux tactic:
+`dbx("g", 1)`. Given a goal of form `A |- [x'=f(x) & Q] p>=0`, this tactic generates two subgoals: `A |- p>=0` and `Q |- p' >= g*p`, where p' is the Lie derivative of p along the ODE x'=f(x). Here, >= can be replaced by any comparison operator.
+Unlike dIRule, dbx does not create further subgoals, and is itself a terminal tactic.
+
+⸻
+
+### 5.4 Arithmetic Tactics
+
+When there are no modalities left, the goal is purely arithmetic.
+Then, it is possible to use the `QE` tactic to close the goal.
+The syntax `QE("Z3")` runs QE with the Z3 SMT solver backend.
+
+Tactic `hide(i)` removes formula with index i from the subgoal permanently.
+The `fullSimplify` tactic to makes expressions simpler.
+
+⸻
+
+## 6. Working With Indices
+
+### 6.1 Index Semantics
+
+Indices refer to the current goal only:
+	•	1 is the first succedent formula.
+	•	2 is the second succedent formula, etc.
+	•	-1 is the first antecedent formula.
+    •	-2 is the second antecedent formula, etc.
+
+After some tactics, the sequent may change, so indices may point to different formulas.
+
+### 6.2 Common Failure: Incorrect Positions
+
+A common reason for tactic failure is incorrect indices, e.g.:
+	•	the index no longer refers to the formula you expect, or
+	•	the selected formula does not match the rule (e.g., andL on a non-∧ formula).
+
+⸻
+
+## 7. Combinators
+
+Useful control constructs:
+	•	Sequential composition: `t1 ; t2`
+    Run t1 then t2 on the resulting goals.
+	•	Branching `<(t1, t2)`
+    Apply t1 to the first branch and t2 to the second, after a rule that splits the goal.
+
+Combining these is generally enough to express proofs.
+
+⸻
+
+## 8. High-Level Tactics
+
+- unfold
+    Unfolds simpler constructs (assignments, tests, choices, sequences, antecedent conjunctions, dual, implication). Often changes sequent structure and might create multiple branches.
+- auto
+    Applies a library of rules to try to automatically prove the goal. Generally succeeds on simpler goals.
+
+⸻
+
+## 9. Debugging
+
+You can insert print between suspicious steps to identify where the proof diverges from expectations.
+
+_____
+
+## 10. Additional Tips:
+
+### 10.1 Syntactic:
+
+- Comments in Bellerophon are written using the syntax `/* This is a comment */`.
+- Do not use a concluding semicolon after the last tactic in your script. The semicolon is only a separator, not a terminator. Write `t1 ; t2`, not `t1 ; t2 ;`.
+- The branching combinator `<( ... )` does not have a closing angle bracket. Write `<(t1, t2)`, not `<(t1, t2)>`.
+- When using branching tactics like dC or cut, further development should be nested inside the branches using `<( ..., ... )` syntax. Write `dC("formula", pos); <(t1; dC("formula", pos); <(t2, t3), t4)`, not `dC("formula", pos); <(t1, t4) ; dC("formula", pos); <(t2 ; t3)`. Here, the first dC splits the goal into two branches. On the first branch we apply t1 followed by dC that further splits into two branches where we apply t2 and t3 respectively. On the second branch of the first dC, we apply t4.
+- Output along the lines of "Exception in thread "main" 6:2 Lexer 6:2 Lexer does not recognize input at ..." indicates that there is a syntax error in the Bellerophon tactic. There can still be syntax errors that do not get caught by the lexer, though.
+- The Bellerophon parser supports only ASCII characters.
+
+### 10.3 Other Advice:
+- Do not assume a branch is closed until you print and verify that it shows "proved". Therefore, after applying a terminal tactic like auto or QE, it is good practice to print the state right after to check that the tactic indeed closed the goal.
+- For the full list of tactics, see https://github.com/LS-Lab/KeYmaeraX-release/tree/master/keymaerax-webui/src/main/resources/help/axiomsrules.
+
+### 10.4 Common Error Messages:
+
+#### Subgoal mismatch.
+Error messages of the form "<(e)(v) is only defined when len(e) = len(v), but 2!=0 subgoals (v)" indicates a branching combinator `<( ... )` has the wrong number of branches.
+In this example, a branching combinator for two branches was used, but the goal was actually already closed (0 subgoals).
+
+Sometimes, this error message is also reached by auto. This is a bug in the implementation of auto that is triggered on some formula shapes. If this happens, since you cannot control auto, just try to work around by using a different tactic or breaking down the proof into smaller steps.
+
+#### dW Bug.
+Sometimes, dW fails with an error message like 
+```
+    Not found: locator 'R=="a&b->c" of position tactic ... does not match anywhere in succedent of ... from ==> 1: a -> c
+```
+where typically a is the domain constraint of the ODE to which we are applying dW, c is the postcondition, and b consists of some formulas from the antecedent with only constants.
+
+This is a bug in KeYmaera X.
+A trick that often works around this bug is cutting in "1=1". Replace `dW(i); *subsequent tactic*` with `cut("1=1"); <(dW(i); *subsequent tactic*, QE("Z3") using "1=1")`.
+The syntax "using "1=1"" tells QE to ignore all antecedent and consequent formulas in this subgoal except "1=1".
+
+If the error persists, you can try first removing antecedent formulas with only constants that are appearing in the error message, and only then apply dW. Use hide(i) to hide the formula at position i.
+
+⸻
+End of Bellerophon Tactic Guide
+____

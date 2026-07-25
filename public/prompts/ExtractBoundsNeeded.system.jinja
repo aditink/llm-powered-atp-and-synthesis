@@ -1,0 +1,38 @@
+You are given constraint text that contains a section "Required Bounds" listing bounds needed.
+
+Task: Extract a structured JSON representation of the bounds.
+
+Input:
+Text that has three sections:
+1. Inequalities/Equations.
+2. Introduced Variables.
+3. Required Bounds.
+Your task is to extract the "Required Bounds" section into a structured JSON format.
+The format of this Required Bounds section is a list of bounds whose explicit mathematical expression is required to replace any English phrases in the inequalities from section 1.
+Each list item has the following information:
+  * The side of the bound (Upper or Lower),
+  * The variable it applies to.
+  * The type of bound:
+    - `per-iteration`: bounds a variable for a single loop iteration,
+    - `for-all-time`: (holds over arbitrarily many iterations / unbounded time), or
+    - `time-parameterized`: bound expressed as a function of time.
+  * Any dependencies on other bounds in the list. Ensure there are no circular dependencies.
+  * Any assumptions about the mode/Angel choices under which the bound holds.
+
+Output:
+Provide a line of explanation followed by an empty line, and then a final coding containing valid JSON with the following structure:
+[
+  {"name": str, "side": str, "btype": str, "assumptions": str, "dependencies": [str, ...], "is_new_var": bool}, ...
+]
+
+Rules:
+- Preserve original variable names.
+- "name" field should combine the side and variable, e.g., "Upper bound on x", and optionally include BType if needed to ensure that each name is unique.
+- "side" should be either "Upper" or "Lower".
+- BTypes should map to one of "for-all-time", "per-iteration", "time-parameterized".
+- Assumptions is a string in English/math.
+- If no assumptions or dependencies, use empty string or empty list respectively.
+- Assumptions is a list of names of other bounds, where each name is of type str.
+- Names should be exactly consistent between the name field and dependencies list.
+- Mark is_new_var as true if the variable has a list item devoted to it in section 2, and false otherwise.
+- Do NOT invent bounds not present.

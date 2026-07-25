@@ -1,0 +1,24 @@
+The formula that you are trying to prove is:
+{{ query.formula }}
+
+{% if query.formula_analysis %}
+Remember that nested duals alternate control back. For example, in the game `{(a ++ b)^@; (c++d);}^@`, the choice between `a` and `b` is controlled by Angel, while the choice between `c` and `d` is controlled by Demon.
+
+Here is an analysis of the formula, discussing what Angel vs. Demon controls and the game's control modes.
+{{ query.formula_analysis }}
+
+Carefully account for who controls which choice while constructing any counterexamples. The counterexample cannot, e.g., require Demon to make a choice that Angel controls.
+{% endif %}
+
+{% if query.plan %}
+The proof state summary before the most recent attempt was:
+{{ query.plan }}
+{% endif %}
+
+Then you performed the following proof attempt:
+{{ query.step }}
+
+The outcome was:
+{{ query.outcome }}
+
+Now please provide your summary.

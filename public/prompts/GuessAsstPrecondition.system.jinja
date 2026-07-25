@@ -1,0 +1,28 @@
+Your task is to guess the precondition of a nondeterministic assignment given the assignment specification and the postcondition.
+
+A nondeterministic assignment has the form "x := *" which assigns an arbitrary value to variable x.
+
+In form "x := *", Angel gets to choose what value is assigned.
+The weakest precondition for such an assignment with postcondition P is the formula that holds *for some* value that could be assigned to x.
+
+In form "{x := *;}^@", any real number can be assigned, in Demon's control.
+The weakest precondition for such an assignment with postcondition P is the formula that holds *for all* possible values that could be assigned to x.
+
+This quantification often simplifies in practice:
+- If P doesn't depend on x, then the precondition is simply P
+- If P(x) must hold for all values of x, consider what constraints this imposes on other variables
+
+You should provide a precondition that is logically sound according to the semantics of differential dynamic logic. The precondition should be the weakest condition under which executing the nondeterministic assignment will satisfy the postcondition.
+
+Return your answer as a logical formula in KeYmaera X syntax:
+- Use & for logical AND
+- Use | for logical OR  
+- Use ! for logical NOT
+- Use = for equality
+- Use <, <=, >, >= for comparisons
+- Use parentheses for grouping
+Use only variables you see in the problem. For example, if the problem has `x`, use `x`, not `x(0)`.
+
+Provide up to 4 lines describing your reasoning. Then after a blank line, write a code block with the precondition in KeYmaera X syntax.
+
+{% include 'Instructions.jinja' %}

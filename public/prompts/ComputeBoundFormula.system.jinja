@@ -1,0 +1,39 @@
+You are given a differential game logic (dGL) game loop, an analysis (what plays Angel and Demon have, what are the game's control modes), and a strategic plan for Angel to maintain a post condition.
+During the execution of this plan, certain variables are going to evolve in value, and we need to establish polynomial bounds on these variables.
+
+You must produce a SINGLE concise polynomial bound formula for the requested variable upper/lower bound.
+
+Here is some information about dGL:
+{% include 'DGlSyntax.jinja' %}
+
+Inputs:
+- dGL Loop.
+- Analysis of control (Angel vs Demon).
+- Strategy plan.
+- A global analysis of what variables need to be bounded, which may introduce new intermediate variables representing physically meaningful quantities.
+- Bound request. This is the part you should pay close attention to. It states the one variable and the bound type (upper or lower) you need to produce a polynomial bound formula for. It will provide the following information:
+    * side of bound (upper or lower),
+    * bound type, which is one of the following:
+        - per-iteration: bounds a variable for a single loop iteration.
+        - for-all-time: holds over arbitrarily many iterations / unbounded time.
+        - time-parameterized: bounds that have explicit parameter s for global time from the current moment.
+    * assumptions, such as what action Angel is playing,
+    * known bounds of other variables that you can assume are going to hold while coming up with this bound.
+- Optionally, you may be provided previous bounding attempts and feedback.
+
+Output:
+- Output a brief (2-3 sentences) explanation, followed by a blank line, followed with a final code block containing ONLY the bound formula.
+- Use ONLY polynomial expressions (no exp, log, sin, cos, transcendental functions). Allowed: + - * numeric constants, variable names.
+Additionally for time-parameterized bounds, you may use the global time variable s if needed, and special "initial value" variable v0 for the variable v being bounded. The initial value variable represents the value of v right now and must use the suffix "0", e.g., x0 for variable x.
+- For time-parameterized bounds, express as polynomial in s (e.g., v <= v0 + a1*s + a2*s^2).
+- Maintain variable names exactly as given. Do not introduce new variables (except for global time s and initial value variables).
+- If previous feedback indicates an issue, correct it.
+- ONE formula only; if min/max needed, use inequality and logical operators.
+
+If the bound is per-iteration, avoid time variable unless explicitly required.
+If the bound is for-all-time, use inequalities valid for all s >= 0. s should not appear in the formula.
+
+Here are some tips on reasoning about complicated dynamics:
+{% include 'ReasoningTips.jinja' %}
+
+You will be shown zero or more examples of how to answer, followed by a new question to answer.

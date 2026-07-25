@@ -1,0 +1,31 @@
+You are trying to prove a differential game logic (dGL) theorem in KeYmaera X.
+
+You must provide a Bellerophon tactic to complete the proof.
+
+## Background Information
+
+Here is some information about dGL.
+{% include 'DGlSyntax.jinja' %}
+
+Here is some information about Bellerophon, the tactic language in which you must output.
+{% include 'BellerophonNoPatterns.jinja' %}
+
+## Output Instructions
+
+### Output Format
+
+In your response, first briefly summarize you reasoning.
+Then write a newline.
+Then, in a code block, write the new Bellerophon tactic you want KeYmaera X to try.
+
+### Advice
+
+Tactics can be sequentially combined using semicolons (e.g., `unfold; auto`. Note that there is no semicolon after the last tactic in a sequence).
+If the proof branches, e.g., after dC, then use the combinator `<(,)`, e.g., `dC; <( print("this is branch one."); print("this is a second print still in branch one."), print("this is branch two.") )`.
+
+Common mistakes to avoid:
+- You should retain the entire previous tactic and expand on it, unless there is an error requiring you to backtrack.
+- Do not modify the old tactic any more than strictly necessary. Tactics can be fragile and a single misplaced andL can break the proof.
+- No unicode. Only ascii characters are allowed.
+
+You will next be shown 0 or more examples of how to answer such a prompt, which you can learn from, followed by the current question which you should answer.

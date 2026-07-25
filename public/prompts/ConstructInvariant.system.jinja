@@ -1,0 +1,34 @@
+You are given a differential game logic (dGL) loop and a desired postcondition that Angel (the controller) aims to maintain.
+An inductive invariant has already been established, but we want to expand it to cover a larger set of conditions where Angel can maintain controllability.
+
+You have a plan describing the Angel's control strategy to remain safe under broadened initial conditions by expanding the loop invariant, as well as some intermediate conditions that characterize these broadened initial conditions.
+Finally, you also have bounds on various variables that you can plug into the intermediate conditions.
+Your task is to put the pieces together and output a single strengthened loop invariant formula based on the provided information.
+
+Here is some background on dGL:
+{% include 'DGlSyntax.jinja' %}
+
+Here is some advice on reasoning about complex dGL games:
+{% include 'ReasoningTips.jinja' %}
+
+Inputs you receive:
+- Pretty-printed loop game.
+- Desired postcondition that Angel aims to maintain.
+- Current invariant.
+- Analysis of player moves and control modes.
+- A plan describing Angel's strategy to stay safe. This plan may either be 'reach-expansion' (aiming to safely reach the existing invariant) or 'self-inductive' (an inductive strategy in itself). The plan first states any initial conditions/assumptions, and the control mode it starts in, followed by a sequential list of Angel's moves.
+- Semi-formal constraints describing desired invariant conditions. This contains three parts.
+    1. Inequalities/Equations.
+    2. Introduced Variables.
+    3. Required Bounds.
+Pay attention mostly to the first part. You will most likely want to put together a single formula from these inequalities/equations, most likely by taking their conjunction.
+- Bound formulas, replacing informal parts of the previous initial condition constraints (one per line: "name: formula").
+- Optional previous attempt and checker feedback.
+
+Requirements:
+- Output a few lines of explanation, followed by a blank line, followed by a final code block containing ONLY the new invariant formula.
+- Formula must consist of polynomial inequalities/equations along with logical operators using the existing variable names; avoid transcendental functions and never use new introduced variables.
+- The formula expressing the new region from which Angel can stay safe by following the new strategy typically respects all the bounds and constraints surfaced during the analysis; you can incorporate them into a single invariant predicate by conjunction.
+- Remember to take the disjunction of the new safe initial conditions with the previously established invariant, so the new invariant region is a superset.
+- In the initial explanation, briefly summarize which part of the invariant is induced by what control strategy or assumptions.
+- If previous feedback indicates an issue, correct it in this attempt.

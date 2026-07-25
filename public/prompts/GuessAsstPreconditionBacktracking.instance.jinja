@@ -1,0 +1,11 @@
+Nondeterministic assignment:
+{{ query.asst }}
+
+Postcondition: {{ query.postcondition }}
+
+{% if query.history %}
+Here is a log of what you have tried in the past in the process of precondition computation:
+History: {{ query.history }}
+
+{% endif %}
+What is the weakest precondition for this nondeterministic assignment?

@@ -1,0 +1,14 @@
+The formula that you are trying to prove is:
+{{ query.formula }}
+
+{% if query.history %}
+This is what you have been trying so far and the results. Pay careful attention to not repeat past mistakes and make progress based on what you have learned.
+    
+    {{ query.history }}
+{% endif %}
+
+Now, please provide a Bellerophon tactic to try next.
+You should retain the entire previous tactic and expand on it, unless there is an error requiring you to backtrack.
+In your response, first briefly summarize your reasoning.
+Then write a newline.
+Then, in a code block, write the entire Bellerophon tactic you want KeYmaera X to try.

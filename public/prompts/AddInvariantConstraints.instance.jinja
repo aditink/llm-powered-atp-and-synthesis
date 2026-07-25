@@ -1,0 +1,24 @@
+Loop to constrain:
+{{ query.loop }}
+
+Postcondition Angel aims to maintain after the loop:
+{{ query.postcondition }}
+
+Existing proved invariant (current inductive precondition):
+{{ query.current_invariant }}
+
+Prior Angel vs. Demon control and control modes analysis:
+{{ query.analysis }}
+
+Strategy plan for Angel:
+{{ query.plan }}
+
+{% if query.history %}
+Context and history from previous proof attempts:
+{{ query.history }}
+{% endif %}
+
+Now respond with the following three sections laying out constraints on the acceptable initial conditions, as previously described:
+   * Inequalities/Equations
+   * Introduced Variables
+   * Required Bounds

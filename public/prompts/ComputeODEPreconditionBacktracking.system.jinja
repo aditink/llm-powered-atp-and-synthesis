@@ -1,0 +1,50 @@
+Your task is to guess the precondition of a differential game logic (dGL) game consisting of an ordinary differential equation (ODE) given the ODE specification and the postcondition.
+You should provide a precondition that is logically sound according to the semantics of differential dynamic logic.
+The precondition should ideally be the weakest condition under which executing the ODE will satisfy the postcondition. But in the interest of tractability, you may provide a stronger, simpler precondition if necessary. Still, aim for the weakest precondition you feel confident about.
+
+## Background information
+
+Here is some information about dGL.
+
+{% include 'DGlSyntax.jinja' %}
+
+A *precondition* for a given game is a logical formula that, when it is true before the game starts, there exists a strategy for Angel to ensure that the *postcondition* holds after the game ends, regardless of how Demon plays.
+The precondition of an ODE is going to be very different depending on whether Angel controls its duration of Demon does.
+
+For Angel-controlled ODEs of the form {x'=f(x) & Q}, the weakest precondition computation amounts to finding the largest set of initial states from which the system can evolve and satisfy the postcondition while respecting the constraint Q.
+You choose how long the ODE runs so there should just exist *some* time duration of running the ODE after which the postcondition holds (with Q holding the whole time).
+
+For Demon-controlled ODEs of the form {x'=f(x) & Q}^@, weakest precondition computation is finding the largest set of initial states from which, for all possible durations that the system could evolve while respecting the constraint Q, we will remain in a region satisfying the postcondition.
+The postcondition should finally hold *regardless of how long the system is run, which is outside our control*.
+The only trajectories we don't need to worry about are those where Q is not satisfied throughout.
+
+## Input
+You will be given the following inputs:
+1. The ODE game.
+2. The postcondition that must hold after the ODE ends.
+3. The overall game in which this ODE appears. From this context, you should carefully account for nested duals and figure out whether you are dealing with an Angel or Demon controlled ODE, and reason accordingly.
+Another thing you should pay attention to is whether there are limitations of the values of variables, or control modes that make your job easier.
+For example, if you know that velocity can only ever be 0 or some positive constant V based on the rest of the game, then these are the only cases you need to account for in your precondition. You should still make any such assumptions explicit in your precondition, for example, by writing an invariant of shape v=0 & ... | v=V & V>0 & ... .
+4. Optionally, a log of previous computations for identifying preconditions for the whole game. Ultimately, you are trying to find preconditions in the whole game and this is just a sub-problem. This history may include failed attempts at guessing the precondition of this very ODE and postcondition, in which case you should pay special attention to see what went wrong and avoid repeating mistakes.
+
+## Output
+
+Return your answer as a (quantifier-and-modality-free) logical formula in KeYmaera X syntax:
+- Use & for logical AND
+- Use | for logical OR  
+- Use ! for logical NOT
+- Use = for equality
+- Use <, <=, >, >= for comparisons
+- Use parentheses for grouping
+
+Use only variables you see in the problem. For example, if the problem has `x`, use `x`, not `x(0)`.
+
+Provide up to 4 lines describing you reasoning. Then after a blank line, write a code block with the precondition in KeYmaera X syntax.
+
+## Additional Advice
+
+{% include 'ReasoningTips.jinja' %}
+
+First carefully determine whether the ODE is Angel-controlled or Demon-controlled by analyzing the overall game context, especially looking for dual operators that may switch control.
+
+If you are assuming a certain mode of operation that makes your postcondition hold, remember to include in your precondition any conditions necessary to ensure that this mode is the one that will operate during the ODE. For example, if you need control variables to be set to a certain value, your precondition should explicitly have a clause requiring this.

@@ -1,0 +1,14 @@
+You are given a differential game logic loop, and some text analysing the loop that includes formulas that should hold initially.
+Your task is to extract assumptions on constants from this text.
+
+A variable is considered a constant if it is never assigned to or changed within the loop.
+
+Input:
+- The loop string.
+- The constraints text, which contains sections: "Inequalities/Equations", "Introduced Variables", and "Required Bounds".
+
+You should focus on the "Inequalities/Equations" section, looking through the listed constraints to identify assumptions that involve only constant variables.
+If there is even one variable in a constraint that is not a constant, that constraint should not be included in the output.
+Return the extracted constraints as a single logical formula (e.g., F > 0 & c1 > 0).
+If there are no assumptions on constants, return "True".
+Output ONLY the formula string.

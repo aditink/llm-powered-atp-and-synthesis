@@ -1,0 +1,15 @@
+Full Game:
+{{ query.game }}
+
+Postcondition Angel aims to maintain after the loop:
+{{ query.postcondition }}
+
+Prior control analysis:
+{{ query.analysis }}
+
+{% if query.context %}
+More information from previous proof attempts:
+{{ query.context }}
+{% endif %}
+
+Provide the control strategy now.

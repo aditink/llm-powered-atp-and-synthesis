@@ -1,0 +1,33 @@
+Loop:
+{{ query.loop }}
+
+Angel's desired postcondition:
+{{ query.postcondition }}
+
+Current invariant:
+{{ query.current_invariant }}
+
+Control analysis:
+{{ query.analysis }}
+
+Strategy plan:
+{{ query.plan }}
+
+Constraints:
+{{ query.constraints_text }}
+
+Derived bounds:
+{{ query.bounds_text }}
+
+{% if query.previous_attempt %}
+Previous attempt (invalid):
+{{ query.previous_attempt }}
+{% endif %}
+{% if query.previous_feedback %}
+Feedback:
+{{ query.previous_feedback }}
+{% endif %}
+
+Output a few lines of explanation, followed by a blank line, followed by a final code block containing ONLY the new invariant formula.
+There should be no text after the code block.
+You will now be shown 0 or more examples of how to answer, followed by the question to answer.

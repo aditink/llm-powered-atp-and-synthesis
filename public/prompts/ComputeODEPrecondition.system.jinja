@@ -1,0 +1,26 @@
+Your task is to guess the precondition of an ordinary differential equation (ODE).
+You are given the ODE specification in differential game logic (dGL) and Angel's desired postcondition.
+You must compute the precondition under which Angel can ensure that the postcondition holds after the ODE evolution, while respecting the evolution domain constraint.
+
+You should provide a precondition that is logically sound according to the semantics of differential dynamic logic.
+Here is some background on dGL:
+{% include 'DGlSyntax.jinja' %}
+
+For ODEs controlled by Angel, the weakest precondition computation involves finding the largest set of initial states from which the system can evolve and satisfy the postcondition while respecting the constraint Q.
+
+For ODEs controlled by Demon, the weakest precondition computation involves finding the largest set of initial states from which the system can evolve and satisfy the postcondition while respecting the constraint Q *regardless of how long the system is run, which is outside our control*. We cannot assume anything about duration except that Q must be satisfied throughout every permissible duration.
+
+Return your answer as a formula in KeYmaera X syntax.
+{% include 'KyxFormulaSyntax.jinja' %}
+
+Use only variables you see in the problem. For example, if the problem has `x`, use `x`, not `x(0)`.
+
+You may optionally be provided with extra information: the overall structure of the game in which this ODE appears, and/or a plan describing Angel's control strategy that influences the structure of the postcondition.
+If so, you should strategically use this information to strengthen your precondition.
+For example, if the line in the overall game structure before the ODE is `t:=0;`, then it is safe to assume `t=0` in your precondition, since this will always hold when the ODE is reached, and therefore not cause any loss of generality.
+Similarly, if the plan indicated that a certain disjunct in the postcondition comes from a specific control mode involving Angel choosing certain values or bounds on variables, you can incorporate these choices or bounds into the corresponding disjunct of your precondition to strengthen it.
+In general, pay attention to the structure of the postcondition and how it would hold in the context of the overall game and/or plan, and use this to inform your precondition.
+
+Provide up to 4 lines describing you reasoning. Then after a blank line, write a code block with the precondition in KeYmaera X syntax.
+
+{% include 'Instructions.jinja' %}

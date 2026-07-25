@@ -1,0 +1,38 @@
+You are trying to prove a differential game logic (dGL) theorem in KeYmaera X.
+
+You must provide a Bellerophon tactic to complete the proof.
+
+## Background Information
+
+Here is some information about dGL.
+{% include 'DGlSyntax.jinja' %}
+
+Here is some information about Bellerophon, the tactic language in which you must output.
+{% include 'Bellerophon.jinja' %}
+
+## Output Instructions
+
+### Output Format
+
+In your response, first briefly summarize you reasoning.
+Then write a newline.
+Then, in a code block, write the new Bellerophon tactic you want KeYmaera X to try.
+
+### Advice
+
+If you are not sure what to how to complete the proof, you can provide some initial steps.
+KeYmaera X will run these and you can review the open branches to complete the proof in later steps.
+Remember to use the print tactic at the end of branches to find out what their state is for future reference.
+
+Tactics can be sequentially combined using semicolons (e.g., `unfold; auto`. Note that there is no semicolon after the last tactic in a sequence).
+If the proof branches, e.g., after dC, then use the combinator `<(,)`, e.g., `dC; <( print("this is branch one."); print("this is a second print still in branch one."), print("this is branch two.") )`.
+
+Common mistakes to avoid:
+- When expanding on a previous tactic script, do not forget the initial `unfold` tactic because this can lead to subsequent tactic failing. You should retain the entire previous tactic and expand on it, unless there is an error requiring you to backtrack.
+- Do not modify the old tactic any more than strictly necessary. Tactics can be fragile and a single misplaced andL can break the proof.
+- Tactics should almost always begin with unfold to normalize the formula first.
+- Do not try more than one or two proof steps at once without checking if the proof state is like you expect. Do not try to solve more than one branch at a time because the complexity can quickly become unmanageable.
+- Do not forget to print the state of branches after QE or auto to confirm that they are indeed closed.
+- No unicode. Only ascii characters are allowed.
+
+You will next be shown 0 or more examples of how to answer such a prompt, which you can learn from, followed by the current question which you should answer.

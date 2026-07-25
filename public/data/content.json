@@ -1,0 +1,1828 @@
+{
+  "prompts": [
+    {
+      "id": "AddInvariantConstraints",
+      "system": "You are given a differential game logic (dGL) loop and a desired postcondition that Angel (the controller) aims to maintain.\nAn inductive invariant has already been established, but we want to expand it to cover a larger set of conditions where Angel can maintain controllability.\n\nYou have a plan describing the Angel's control strategy to remain safe under broadened initial conditions by expanding the loop invariant.\nYour task is to use this plan to derive intermediate conditions that characterize these broadened initial conditions.\n\nBackground on dGL:\n{% include 'DGlSyntax.jinja' %}\n\nYou will be given:\n- The full loop.\n- The postcondition that Angel aims to maintain.\n- A previously proven invariant (current inductive precondition).\n- A prior analysis of Angel vs. Demon controls and control modes.\n- A plan describing Angel's strategy to stay safe. This plan may either be 'reach-expansion' (aiming to safely reach the existing invariant) or 'self-inductive' (an inductive strategy in itself). The plan first states any initial conditions/assumptions, and the control mode it starts in, followed by a sequential list of Angel's moves.\n\nYour task is to propose semi-formal initial conditions under which the provided Angel strategy will work in the form described below.\n\nProduce two parts:\n1. Initial conditions: A concise set of initial equations and inequalities that must hold for the strategy to succeed.\nThis should contain three sections:\n   * Inequalities/Equations:\n      - You may use variables in the original question and polynomials in terms of them, the comparison operates (<. <=, =, >=, >), logical operators `and`, `or` and `not`, and short English phrases to express bounds of variables, e.g., \"upper bound of x\", \"lower bound of y over one iteration\".\n      - You may introduce new intermediate variables if necessary to express a physically meaningful quantity if it appears in multiple places. Remember to describe any introduced variable in the next section. Also introduce equations/inequalities to define any used values/bounds of the variables. That is, if there is a reference to an upper bound of variable x, there should be an inequality of the form x < ... or x <= ... to define what the upper bound of x means, and analogously for lower bounds (>, >=) and direct reference (=). In the end, there should be a way to express all introduced variables or bounds of introduced variables in terms of the original variables by transitively following the equations/inequalities.\n      - Include when applicable, any initial conditions required to ensure that we start from the specified initial control mode.\n      - Include any relevant assumptions on constants.\n      - When relevant, you may provide a one-line explanation in parentheses on the newline after an inequality/equation to clarify its purpose.\n   * Introduced Variables:\n      - List any intermediate variables introduced, along with a short description, e.g., \"time_to_target = time taken by the agent to reach target position p\".\n   * Required Bounds:\n      - A list of bounds whose explicit mathematical expression is required to replace any English phrases in the inequalities from section 1.\n      - Each list item should specify:\n         * The side of the bound (Upper or Lower),\n         * The variable it applies to (could be an introduced variables from section 2),\n         * The type of bound:\n            - `per-iteration`: bounds a variable for a single loop iteration,\n            - `for-all-time`: (holds over arbitrarily many iterations / unbounded time), or\n            - `time-parameterized`: bound expressed as a function of time.\n         * Any dependencies on other bounds in the list. Ensure there are no circular dependencies.\n         * Any assumptions about the mode/Angel choices under which the bound holds.\n\nGuidelines:\n- Be concise and concrete; avoid filler and meta-commentary.\n\n{% include 'ReasoningTips.jinja' %}\n\nYou will be shown zero or more examples of how to answer, followed by a new question to answer.",
+      "instance": "Loop to constrain:\n{{ query.loop }}\n\nPostcondition Angel aims to maintain after the loop:\n{{ query.postcondition }}\n\nExisting proved invariant (current inductive precondition):\n{{ query.current_invariant }}\n\nPrior Angel vs. Demon control and control modes analysis:\n{{ query.analysis }}\n\nStrategy plan for Angel:\n{{ query.plan }}\n\n{% if query.history %}\nContext and history from previous proof attempts:\n{{ query.history }}\n{% endif %}\n\nNow respond with the following three sections laying out constraints on the acceptable initial conditions, as previously described:\n   * Inequalities/Equations\n   * Introduced Variables\n   * Required Bounds",
+      "shared": "",
+      "title": "Add Invariant Constraints",
+      "description": "Turns a control plan into semi-formal invariant constraints.",
+      "category": "primary",
+      "pipeline": "synthesis",
+      "rawFiles": [
+        "AddInvariantConstraints.system.jinja",
+        "AddInvariantConstraints.instance.jinja"
+      ]
+    },
+    {
+      "id": "AnalyzeGameLoop",
+      "system": "Your task is to analyze a game and identify which actions are taken by the Angel (controllable player) versus the Demon (adversarial player).\n\n## Background Information\n\n{% include 'DGlSyntax.jinja' %}\n\n{% include 'LabelSyntax.jinja' %}\n\n## Input\n\nYou will be provided a dGL game.\n\n## Output\n\nYour analysis should identify:\n1. What actions or decisions are under Angel's control in the game.\n2. What actions or decisions are under Demon's control in the game.\n3. The control modes in the game, that is, regions of different qualitative behavior (e.g. growth vs. oscillation vs. decay vs. equilibrium).\nThe modes are typically defined by two things: (1) initial conditions inducing different qualitative behavior in the dynamics, and (2) control actions leading to different possible values of variables. Comment about the asymptotes or polynomial invariants of each mode, when relevant.\n4. The overall control pattern in the game.\n\n## Further Instructions\n\nProvide your analysis as clear, readable text describing the Angel and Demon actions, and control modes. Be specific about what choices each player makes and how they might interact.\nStructure it into the sections corresponding to the points above.\nBe as concise as possible while still being clear, with no superfluous or filler text or hedging.\n\n{% include 'ReasoningTips.jinja' %}\n\nYou will now be provided with 0 or more examples of games and their analysis, followed by a new game that you must analyze.\n",
+      "instance": "Game to analyze:\n{{ query.loop }}\n\nPlease analyze this game and identify the requested items (Angel vs. Demon control actions, control modes, overall control pattern).",
+      "shared": "",
+      "title": "Analyze Game Loop",
+      "description": "Analyzes Angel and Demon choices and the control modes in a game.",
+      "category": "primary",
+      "pipeline": "both",
+      "rawFiles": [
+        "AnalyzeGameLoop.system.jinja",
+        "AnalyzeGameLoop.instance.jinja"
+      ]
+    },
+    {
+      "id": "Bellerophon",
+      "system": "",
+      "instance": "",
+      "shared": "# Bellerophon Tactic Guide (KeYmaera X 5.1)\n\n## 1. Overview\n\n**KeYmaera X** proves properties of hybrid systems using differential dynamic logic (dL) or hybrid games using differential game logic (dGL).  \nA **tactic** is a small program that automatically applies proof rules.  \n**Bellerophon** is the language for writing these tactics.  \nThe following are instructions to write one Bellerophon script, ideally that closes the proof in one run, or at least provides new information to write such a tactic later.\n\n---\n\n## 2. Proof State Basics\n\nTo write good tactics, you should internally keep track of proof state. A tactic maps one proof state to another.\nA proof state consists of zero or more goals (subgoals). Each goal is a sequent consisting of an antecedent (assumptions) and a succedent (formulas to prove).\n\n### 2.1 Sequents and Antecedents in the KeYmaera X CLI\n\nA **sequent** in the CLI is written as:\n\n```\n-1:  x>=0\tGreaterEqual\n-2:  y=0\tEqual\n==> 1:  x>=0 GreaterEqual\t\n```\n\nwhich corresponds to the following sequent in mathematical notation:\n```\nx>=0, y=0  |-  x>=0\n```\n\nFormulas are indexed.\nNegative indices indicate antecedent formulas, and positive indices indicate succedent formulas.\n\nThe antecedent lists assumptions.\nThe succedent lists formulas to prove.\n\nWe can assume all antecedent formulas are true and must use them to prove at least one succedent formula.\nYou just need to prove one succedent formula to close the goal.\n\n### 2.2 Goals and Subgoals\n    \nTactics transform the current goal into zero or more subgoals.\nYou apply tactics until no subgoals remain, which would indicate the theorem is proved.\n\n### 2.3 Formula Indexing\n\nMany tactics require a formula index.\nA common failure mode is using the wrong index.\nUse printing (Section 3.2) to inspect the state and indices while debugging.\n\n⸻\n\n## 3. Proving Interactions\n\n### 3.1 Branches (Multiple Goals)\n\nWhen a tactic creates multiple goals (e.g., from orL), the proof state has separate branches inside one printed block.\n\nExample pattern:\n\n===== State of Hard Cases ==== ElidingProvable(Provable{\n         -1:  <formula for case 1>  Or\n         -2:  <assumption>          Greater\n         ...\n      ==> 1:  <modal or post-condition>  Box\n        from\n         -1:  <formula for first disjunct>  And\n         ...\n      ==> 1:  <some goal 1>  Box\n        with\n         -1:  <formula for remaining disjuncts>  Or\n         ...\n      ==> 1:  <some goal 2>  Box}) =====\nprint done (no progress, 1s)\nDone .\n\nHere:\n\t•\tThe from part shows the first branch (e.g., first disjunct, such as a>=0 & ...).\n\t•\tThe with part shows the other branch.\n\t•\tEach branch has its own sequent (==> line) with indexed formulas.\n\nEach branch is a separate goal that must be closed.\n\nYou should check if a subgoal is closed by printing it. If the subgoal is proved, you should see something like:\n\n===== subgoal state ==== ElidingProvable(Provable{   -1:  x>0\tGreater\n    ==> 1:  x>=0\tGreaterEqual proved}) =====\n    print done (proved, 1s)\n\n### 3.2 Running and Rerunning Tactics; Printing State\n\nIf you know of a tactic that you want to slightly modify, simply reuse the same text, and edit it as needed.\n\nTo inspect the current proof state at any point, use the tactic:\n\nprint(\"State of Hard Cases\")\n\nThis prints the current provable state (all goals and their indexed formulas) at the point where the tactic is invoked.\nMultiple print statements can be used in one tactic, to print the state at different points in the proof.\nThe print message helps identify which part of the script produced that state.\n\n### 3.3 Printing for Debugging\n\nFor debugging, when the proof state has been reduced to one or more purely arithmetic subgoals, you can:\n\t1.\tUse print to display the current arithmetic constraints.\n\t2.\tCopy these constraints into an external tool such as Z3 to search for counterexamples by checking if the formula (AND of all antecedent constraints) -> (OR of all succedent constraints) is valid (i.e., its negation is unsatisfiable).\n\n⸻\n\n## 4. Bellerophon Essentials\n\t•\tA script is a sequence of tactic expressions.\n\t•\tt1 ; t2 runs t1 then t2.\n\t•\t<(t1, t2) applies t1 to the first branch and t2 to the second branch. Note the absence of a closing angle bracket.\n\t•\tA tactic either:\n\t    •\tsucceeds and may produce subgoals,\n\t    •\tfails, or\n\t    •\tcloses the current goal.\n\n⸻\n\n## 5. Primitive Tactics\n\n### 5.1 Logical Tactics\n\nCommon examples (indices refer to formulas in the sequent):\n\t- Implication: implyR(i)\n        This transforms a goal of form |- A -> B into A |- B.\n\t- Conjunction: andR(i),\n        This transforms a goal of form |- A & B into two subgoals: |- A and |- B.\n    - andL(i)\n        This transforms a goal of form A & B, Γ |- Δ into A, B, Γ |- Δ, where the i-th antecedent formula in the original subgoal was A & B.\n\t- Disjunction: orR\n        This transforms a goal of form |- A | B into two subgoals: |- A and |- B.\n    - orL(i)\n        This transforms a goal of form A | B, Γ |- Δ into two subgoals: A, Γ |- Δ and B, Γ |- Δ, where the i-th antecedent formula in the original subgoal was A | B.\n\t- Universal: allR\n        This transforms a goal of form |- ∀x. P(x) into |- P(y) for a fresh variable y.\n    - allL(i):\n        This transforms a goal of form ∀x. P(x), Γ |- Δ into P(t), Γ |- Δ for a term t, where the i-th antecedent formula in the original subgoal was ∀x. P(x).\n    - allL2R(i)\n        This transforms a goal of form x=e, Γ |- Δ, ∀x. P(x) into Γ |- Δ, P(e), where the i-th antecedent formula in the original subgoal was x=e.\n    - cut(formula)\n        This introduces formula as an intermediate lemma to prove.\n        It transforms a goal of form Γ |- Δ into two subgoals:\n        (1) Use subgoal: formula, Γ |- Δ\n        (2) Show subgoal: Γ |- formula.\n\n### 5.2 Program / Modal Tactics\n\nFor modal formulas like [α]φ and ⟨α⟩φ, tactics handle:\n- assignments,\n- tests,\n- nondeterministic choice,\n- sequential composition,\n- duals.\nThese reduce program structure to simpler logical or arithmetic goals. You will almost never need to use these low-level tactics directly, as they are all handled by the high-level `unfold` tactic.\n\nA structure not handled by unfold, that you will need to handle directly is loops. Usually this needs the loop rule, `loop(\"invariant\", i)`, which transforms a goal of form  Γ |- [α*]φ, Δ where [α*]φ is at index i into three subgoals:\n    1. init subgoal: Γ |- invariant, Δ\n    2. step subgoal: invariant |- [α]invariant\n    3. post subgoal: invariant |- φ\nHere, invariant is the (literal) formula you provide as a loop invariant.\n\nThere is a second class of modality tactics used to simplify not the program inside the modality, but the postcondition after the modality or otherwise modify the modality. The most common are:\n- boxAnd(i)\n    Transforms a goal of form [a](P∧Q) to [a]P ∧ [a]Q. Usually followed by andR(i) to split into two subgoals.\n- GV(i)\n    Transforms a goal of form Γ |- [a]P, Δ to Γconst |- P, Δconst, where Γconst and Δconst are the subsets of Γ and Δ that contain only formulas with constants (no variables).\n- discreteGhost(\"x\", \"x0\", i)\n    Adds a new variable x0 and the antecedent formula x = x0. The position, i, should be that of the modality formula (usually 1).\n\n### 5.3 Differential Equation Tactics\n\nFor goals involving differential equations of the form:\n\n```\n[{x' = f(x) & Q}] P\n```\n\nyou can use the following high-level ODE tactics:\n- dIRule(i) (Differential Invariant)\n    Applies a differential invariant rule to the ODE formula at index i.\n    This proves formulas like [ODE] P where P may contain any comparison operator (<, <=, =, >=, >).\n    The rule generates two proof obligations:\n\t1.\tThe postcondition P holds initially, and\n\t2.\tThe derivative condition P' satisfies the correct sign constraint (depending on the operator) throughout the ODE.\n\t    For example, if in `[{x' = f(x) & Q}] P`,  P is p <= 0, the check is `Q |= [x':=f(x)] p' <= 0`;\n        if P is p > 0, the check is `Q |= [x':=f(x)] p' > 0`;\n        and similarly for the other operators.\n        Along with Q, any assumptions from the antecedents that had only constants (no variables) are also kept.\n        Note that you cannot use the invariant that you are trying to prove as an assumption in this subgoal, that is, you will not be able to assume p > 0 to prove p' > 0.\n    If these obligations are proved, the ODE is handled without solving it explicitly.\n    Note how to be able to prove subgoal 2, we may want to strengthen the domain constraint Q using dC first before applying dIRule.\n\n- dC(“φ”, i) (Differential Cut)\nAdds an additional domain constraint φ to the ODE at index i.\nThis transforms a goal with `[{x'=f(x) & Q}] P` at position i into two subgoals:\n    1. Use:\n    The formula at position i becomes `[{x'=f(x) & Q ∧ φ}] P`\n    2. Show:\n    The formula at position i becomes `[{x'=f(x) & Q}] φ`\n\n- dW(i) (Differential Weakening)\nApplies weakening to an ODE goal at index i.\nIf the formula at index i was `[{x'=f(x) & Q}] P`, the new goal becomes `Q |- P`, which removes the ODE entirely. Along with Q, any assumptions from the antecedents that had only constants (no variables) are also kept.\nIt makes sense to apply dW only after sufficiently strengthening the domain constraint Q using dC first.\n\nThese tactics reduce ODE proof obligations to simpler goals.\nA common pattern is to cut in *solutions* or *bounds* of the variables involved in the ODE and postcondition using dC.\nIn the branch where we need to show that the bound holds, it is common to use dIRule.\nIn the other, \"use\" branch, we typically apply further dC cuts to accumulate more bounds.\nThen after accumulating sufficiently many such cuts, we apply dW followed by QE to finish the proof.\nSometimes the order of cuts really matters, as earlier cuts may become important to closing the dIRule obligations of later cuts.\n\nOften, bounds are best expressed in terms of the initial values of variables before the ODE starts, e.g., x <= x0 + v*t for a variable x with initial value x0 and constant velocity v over time t.\nIn this case, if x0 does not already exist, a useful tactic is `discreteGhost(\"x\", \"x0\", i)`, which adds a new variable x0 and the antecedent formula x = x0. The position, i, should be that of the ODE formula (usually 1).\n\nBesides dIRule, another useful tactic that is especially useful for ODEs with exponential solutions, is the Darboux tactic:\n`dbx(\"g\", 1)`. Given a goal of form `A |- [x'=f(x) & Q] p>=0`, this tactic generates two subgoals: `A |- p>=0` and `Q |- p' >= g*p`, where p' is the Lie derivative of p along the ODE x'=f(x). Here, >= can be replaced by any comparison operator. dbx is usually the way to go when we want to prove something about a variable whose derivative is dependent on itself.\nIn cases where you are trying to prove, e.g., p'>=0 and it is not immediate that p'>0, but it is true that p' >= g*p, you should use Darboux and not dIRule (here >= and > can be replaced by the other comparison operators).\nUnlike dIRule, dbx does not create further subgoals, and is itself a terminal tactic.\n\n⸻\n\n### 5.4 Arithmetic Tactics\n\nWhen there are no modalities left, the goal is purely arithmetic.\nThen, it is possible to use the `QE` tactic to close the goal.\nIt is recommended to use `QE(\"Z3\")` which runs QE with the Z3 SMT solver backend, as it is generally most effective.\n\nIf QE times out, try hiding irrelevant formulas using `hide(i)` to remove formula with index i from the subgoal permanently.\nIt can also sometimes help to use the `fullSimplify` tactic to make expressions simpler.\n\nIf QE fails, there is likely an error in the proof or the theorem is not valid. It can help to look for a counterexample as described in Section 3.3.\n\n⸻\n\n## 6. Working With Indices\n\n### 6.1 Index Semantics\n\nIndices refer to the current goal only:\n\t•\t1 is the first succedent formula.\n\t•\t2 is the second succedent formula, etc.\n\t•\t-1 is the first antecedent formula.\n    •\t-2 is the second antecedent formula, etc.\n\nAfter some tactics, the sequent may change, so indices may point to different formulas.\n\n### 6.2 Common Failure: Incorrect Positions\n\nA common reason for tactic failure is incorrect indices, e.g.:\n\t•\tthe index no longer refers to the formula you expect, or\n\t•\tthe selected formula does not match the rule (e.g., andL on a non-∧ formula).\n\nDebugging pattern:\n\t1.\tInsert print before the failing step.\n\t2.\tCheck the exact index and formula.\n\t3.\tUpdate the index or tactic accordingly.\n\n⸻\n\n## 7. Combinators\n\nUseful control constructs:\n\t•\tSequential composition: `t1 ; t2`\n    Run t1 then t2 on the resulting goals.\n\t•\tBranching `<(t1, t2)`\n    Apply t1 to the first branch and t2 to the second, after a rule that splits the goal.\n\nCombining these is generally enough to express proofs.\n\n⸻\n\n## 8. High-Level Tactics\n\nHigh-level tactics:\n\t•\tperform several logical steps at once,\n\t•\thandle common patterns in hybrid programs,\n\t•\tpush the proof toward arithmetic goals.\n\nThe two most common ones are:\n- unfold\n    Unfolds simpler constructs (assignments, tests, choices, sequences, antecedent conjunctions, dual, implication). Often changes sequent structure and might create multiple branches.\n- auto\n    Applies a library of rules to try to automatically prove the goal. Generally succeeds on simpler goals.\n\nYou can use these to make the tactic shorter, but the tradeoff is less control and harder debugging.\n\n⸻\n\n## 9. Debugging\n\nCommon debugging workflows:\n\t1.\tInsert print between suspicious steps to see the goal after each one. This can help identify where the proof diverges from expectations.\n    2.\tRemove steps until the error disappears. Once behavior is as expected, add more steps.\n\n_____\n\n## 10. Additional Tips:\n\n### 10.1 Syntactic:\n\n- Comments in Bellerophon are written using the syntax `/* This is a comment */`.\n- Do not use a concluding semicolon after the last tactic in your script. The semicolon is only a separator, not a terminator. Write `t1 ; t2`, not `t1 ; t2 ;`.\n- The branching combinator `<( ... )` does not have a closing angle bracket. Write `<(t1, t2)`, not `<(t1, t2)>`.\n- When using branching tactics like dC or cut, further development should be nested inside the branches using `<( ..., ... )` syntax. Write `dC(\"formula\", pos); <(t1; dC(\"formula\", pos); <(t2, t3), t4)`, not `dC(\"formula\", pos); <(t1, t4) ; dC(\"formula\", pos); <(t2 ; t3)`. Here, the first dC splits the goal into two branches. On the first branch we apply t1 followed by dC that further splits into two branches where we apply t2 and t3 respectively. On the second branch of the first dC, we apply t4.\n- Output along the lines of \"Exception in thread \"main\" 6:2 Lexer 6:2 Lexer does not recognize input at ...\" indicates that there is a syntax error in the Bellerophon tactic. There can still be syntax errors that do not get caught by the lexer, though.\n- The Bellerophon parser supports only ASCII characters.\n- You can apply tactics like andL and orL only to formulas that have the corresponding logical connective at the top level. For example, andL would not apply to a | b & c because the top-level connective is |, since & binds more tightly. A good pattern is to use unfold to split up all top-level conjunctions at once, and then apply orL as needed.\n\n### 10.2 Common Proof Patterns:\n- Sometimes, it is helpful to split out disjunctive cases in the antecedent using orL, because the disjuncts correspond to different control modes requiring different reasoning.\n- When there are top-level conjunctions in the antecedent, you can either split them one-by-one using andL, or use unfold to split all at once. The latter is often more concise, while the former gives more control. It is often necessary to split conjunctions to expose individual underlying assumptions to which further rules apply, e.g., disjunctions for orL case splitting, or equations on which to apply allL2R.\n- When you see errors about inapplicability of a tactic due to formula shape mismatch, try to work around by using a different tactic or by introducing cuts to reshape the goal into a more convenient form.\n- For time-triggered controllers, `t>=0` is often a useful invariant to cut in using dC, as it ensures we only have to reason about ODE properties after nonnegative time durations.\n\n### 10.3 Other Advice:\n- Do not assume a branch is closed until you print and verify that it shows \"proved\". Therefore, after applying a terminal tactic like auto or QE, it is good practice to print the state right after to check that the tactic indeed closed the goal.\n- `unfold` steps are important and should not be forgotten. They often change the shape of the subgoal, and their can lead subsequent tactics to fail because the positions of sequents they expect are no longer present. It is a good idea to start tactic scripts with `unfold` to normalize the formula first.\n- For the full list of tactics, see https://github.com/LS-Lab/KeYmaeraX-release/tree/master/keymaerax-webui/src/main/resources/help/axiomsrules.\n- Duals are usually handled by `unfold`, which generally eliminates the outermost dual by flipping the modality (box to diamond or vice versa). Otherwise the individual tactics are `duald(i)` that handles diamond modality containing a dual game at position i and similarly and `dualb(i)` for box modality.\n- unfold generally handles implications, so implyR(1) is usually not necessary after unfold.\n- dbx is strict about the shape it allows: the postcondition formula after the box must be a single inequality or equation with 0 on the RHS. Rewrite the goal using a differential cut if needed to get it into this shape.\n- When you have two subsequent formulas, e.g., Γ |- [α1*]φ, [α2*]φ, (i.e., [α1*]φ at position 1 and [α2*]φ at position 2), remember that you only need to prove one of the subsequents. You can think carefully about which one is more promising to prove, and get rid of the other using hide(2) or hide(1) as appropriate. But don't eliminate options too early: if you have a disjunction `f1 | f2` in your assumptions, it may be that [α1*]φ is provable when f1 holds, and [α2*]φ is provable when f2 holds, so you need to keep both options until you have split on the disjunction using orL.\n- If an arithmetic proof obligation times out on auto or QE, it is a good idea ot check if the goal is even valid by internally checking if a solver like Z3 can find a counterexample within some small timeout.\n\n### 10.4 On Loop Invariants:\n\nidentifying the right loop invariant for proving properties of loops (using tactic `loop(\"invariant\", i)`) can be tricky, yet critical to allowing the subsequent proof branches succeed. A common pattern is to start with an invariant, and then strengthen or weaken it as required as one encounters counterexamples or difficulties in closing the subgoals, init, step and post, out of which step is usually the hardest to close.\n\nThe invariant can be no stronger than the initial assumptions, that is, `Γ1 & Γ2` in `Γ1, Γ2 |- [α*]φ`. Anything stronger than `Γ1 & Γ2` would not allow the init subgoal to close.\nThe invariant cannot be weaker than φ, the postcondition. Anything weaker than φ would not allow the post subgoal to close.\nThe challenge is then to weaken the assumptions enough, or strengthen the postcondition enough, that the resulting invariant is *inductive*, allowing the step subgoal to close.\nFor example, consider the simple loop goal `x=1 |- [{?x>=1;^@; {x'=1}}*]x>=0`.\nx=1 is too strong as an invariant because as time elapses, x becomes larger than 1, so it is not true that x=1 |- [?x>=1;^@; {x'=1}]x=1.\nx>=0 is too weak as an invariant because Demon loses within the loop at the test when, e.g., x=0, so it is not true that x>=0 |- [?x>=1;^@; {x'=1}]x>=0.\nA suitable invariant is x>=1, which is weaker than the assumptions, stronger than the postcondition, and inductive in that if it holds initially, after running one iteration of the loop, it will continue to hold.\n\nOther advice for identifying an invariant:\n- A good heuristic is to start with the initial assumptions as the invariant, and then weaken them as needed, or start with the postcondition φ and strengthen it. Ask yourself: do the initial assumptions already look inductive? Does the postcondition already look inductive?\n- It is usually a good idea to retain all assumptions on signs of constants. These often end up being critical to inductiveness. You lose nothing by including assumptions in the invariant, unless they are non-inductive and stop holding after some time.\n- It is easy to get the invariant subtly wrong because of small inaccuracies or missing edge cases. But in the course of doing the proof, if you carefully analyze proof failures, you will discover the missing requirements, so do not hesitate to modify the invariant accordingly.\n- Finding the right invariant is the only way to do proofs about Angel loops in Demon modality games or Dually, Demon loops in Angel games (i.e. `[α*]φ` or `<α*>φ`). The only way to prove the latter is to first convert to `[α*]φ` form, e.g. using unfold, and then apply the loop tactic.\n\n### 10.5 On proving Angel choices in Angel games:\n\nThis section applies dually also to Demon choices in Demon games.\nConsider an Angel choice in an Angel game, e.g., `x=1 | x=-1 |- <{ {v:=1; ++ v:=-1;}^@; {x'=v}}^@>(x>=1 | x<=-1)`.\nAfter applying `unfold`, we get a two subsequents:\n`x = 1 | x = -1 |- [{x'=1}](x >= 1  |  x <= -1), [{x'=-1}](x >= 1  |  x <= -1)`\nThis reflects how we can choose which subsequent to prove based on which choice Angel would have strategically made.\nIn this case, Angel would choose the first branch if x=1 initially, and the second branch if x=-1 initially.\nThus we could apply the following tactic to complete the proof, with the orL splitting on initial conditions and hideR choosing the right subsequent to then prove:\n```\nunfold; orL(-1); <(\n    hideR(2); dC(\"x>=1\", 1); <(\n        dW(1); QE,\n        dIRule(1); <(\n            QE,\n            unfold; QE\n        )\n    ),\n    hideR(1); dC(\"x<=-1\", 1); <(\n      dW(1); QE,\n      dIRule(1); <(\n          QE,\n          unfold; QE\n      )\n    )\n)\n```\n\n### 10.6 Common Error Messages:\n\n#### Subgoal mismatch.\nError messages of the form \"<(e)(v) is only defined when len(e) = len(v), but 2!=0 subgoals (v)\" indicates a branching combinator `<( ... )` has the wrong number of branches.\nIn this example, a branching combinator for two branches was used, but the goal was actually already closed (0 subgoals), and the fix is to remove the branching combinator since the subgoal is already proved.\n\nSometimes, this error message is also reached by auto. This is a bug in the implementation of auto that is triggered on some formula shapes. If this happens, since you cannot control auto, just try to work around by using a different tactic or breaking down the proof into smaller steps.\n\n#### dW Bug.\nSometimes, dW fails with an error message like \n```\n    Not found: locator 'R==\"a&b->c\" of position tactic ... does not match anywhere in succedent of ... from ==> 1: a -> c\n```\nwhere typically a is the domain constraint of the ODE to which we are applying dW, c is the postcondition, and b consists of some formulas from the antecedent with only constants.\n\nThis is a bug in KeYmaera X.\nA trick that often works around this bug is cutting in \"1=1\". Replace `dW(i); *subsequent tactic*` with `cut(\"1=1\"); <(dW(i); *subsequent tactic*, QE(\"Z3\") using \"1=1\")`.\nThe syntax \"using \"1=1\"\" tells QE to ignore all antecedent and consequent formulas in this subgoal except \"1=1\".\n\nIf the error persists, you can try first removing antecedent formulas with only constants that are appearing in the error message, and only then apply dW. Use hide(i) to hide the formula at position i.\n\n⸻\nEnd of Bellerophon Tactic Guide\n____",
+      "title": "Bellerophon",
+      "description": "The complete KeYmaera X Bellerophon tactic-language guide supplied to the model.",
+      "category": "shared",
+      "pipeline": "reference",
+      "rawFiles": [
+        "Bellerophon.jinja"
+      ]
+    },
+    {
+      "id": "BellerophonNoPatterns",
+      "system": "",
+      "instance": "",
+      "shared": "# Bellerophon Tactic Guide (KeYmaera X 5.1)\n\n## 1. Overview\n\n**KeYmaera X** proves properties of hybrid systems using differential dynamic logic (dL) or hybrid games using differential game logic (dGL).  \nA **tactic** is a small program that automatically applies proof rules.  \n**Bellerophon** is the language for writing these tactics.  \nThe following are instructions to write one Bellerophon script, ideally that closes the proof in one run, or at least provides new information to write such a tactic later.\n\n---\n\n## 2. Proof State Basics\n\nTo write good tactics, you should internally keep track of proof state. A tactic maps one proof state to another.\nA proof state consists of zero or more goals (subgoals). Each goal is a sequent consisting of an antecedent (assumptions) and a succedent (formulas to prove).\n\n### 2.1 Sequents and Antecedents in the KeYmaera X CLI\n\nA **sequent** in the CLI is written as:\n\n```\n-1:  x>=0\tGreaterEqual\n-2:  y=0\tEqual\n==> 1:  x>=0 GreaterEqual\t\n```\n\nwhich corresponds to the following sequent in mathematical notation:\n```\nx>=0, y=0  |-  x>=0\n```\n\nFormulas are indexed.\nNegative indices indicate antecedent formulas, and positive indices indicate succedent formulas.\n\nThe antecedent lists assumptions.\nThe succedent lists formulas to prove.\n\nWe can assume all antecedent formulas are true and must use them to prove at least one succedent formula.\nYou just need to prove one succedent formula to close the goal.\n\n### 2.2 Goals and Subgoals\n    \nTactics transform the current goal into zero or more subgoals.\nYou apply tactics until no subgoals remain, which would indicate the theorem is proved.\n\n### 2.3 Formula Indexing\n\nMany tactics require a formula index.\n\n⸻\n\n## 3. Proving Interactions\n\n### 3.1 Branches (Multiple Goals)\n\nWhen a tactic creates multiple goals (e.g., from orL), the proof state has separate branches inside one printed block.\n\nExample pattern:\n\n===== State of Hard Cases ==== ElidingProvable(Provable{\n         -1:  <formula for case 1>  Or\n         -2:  <assumption>          Greater\n         ...\n      ==> 1:  <modal or post-condition>  Box\n        from\n         -1:  <formula for first disjunct>  And\n         ...\n      ==> 1:  <some goal 1>  Box\n        with\n         -1:  <formula for remaining disjuncts>  Or\n         ...\n      ==> 1:  <some goal 2>  Box}) =====\nprint done (no progress, 1s)\nDone .\n\nHere:\n\t•\tThe from part shows the first branch (e.g., first disjunct, such as a>=0 & ...).\n\t•\tThe with part shows the other branch.\n\t•\tEach branch has its own sequent (==> line) with indexed formulas.\n\nEach branch is a separate goal that must be closed.\n\nYou should check if a subgoal is closed by printing it. If the subgoal is proved, you should see something like:\n\n===== subgoal state ==== ElidingProvable(Provable{   -1:  x>0\tGreater\n    ==> 1:  x>=0\tGreaterEqual proved}) =====\n    print done (proved, 1s)\n\n### 3.2 Running and Rerunning Tactics; Printing State\n\nIf you know of a tactic that you want to slightly modify, simply reuse the same text, and edit it as needed.\n\nTo inspect the current proof state at any point, use the tactic:\n\nprint(\"State of Hard Cases\")\n\nThis prints the current provable state (all goals and their indexed formulas) at the point where the tactic is invoked.\nMultiple print statements can be used in one tactic, to print the state at different points in the proof.\nThe print message helps identify which part of the script produced that state.\n\n⸻\n\n## 4. Bellerophon Essentials\n\t•\tA script is a sequence of tactic expressions.\n\t•\tt1 ; t2 runs t1 then t2.\n\t•\t<(t1, t2) applies t1 to the first branch and t2 to the second branch. Note the absence of a closing angle bracket.\n\t•\tA tactic either:\n\t    •\tsucceeds and may produce subgoals,\n\t    •\tfails, or\n\t    •\tcloses the current goal.\n\n⸻\n\n## 5. Primitive Tactics\n\n### 5.1 Logical Tactics\n\nCommon examples (indices refer to formulas in the sequent):\n\t- Implication: implyR(i)\n        This transforms a goal of form |- A -> B into A |- B.\n\t- Conjunction: andR(i),\n        This transforms a goal of form |- A & B into two subgoals: |- A and |- B.\n    - andL(i)\n        This transforms a goal of form A & B, Γ |- Δ into A, B, Γ |- Δ, where the i-th antecedent formula in the original subgoal was A & B.\n\t- Disjunction: orR\n        This transforms a goal of form |- A | B into two subgoals: |- A and |- B.\n    - orL(i)\n        This transforms a goal of form A | B, Γ |- Δ into two subgoals: A, Γ |- Δ and B, Γ |- Δ, where the i-th antecedent formula in the original subgoal was A | B.\n\t- Universal: allR\n        This transforms a goal of form |- ∀x. P(x) into |- P(y) for a fresh variable y.\n    - allL(i):\n        This transforms a goal of form ∀x. P(x), Γ |- Δ into P(t), Γ |- Δ for a term t, where the i-th antecedent formula in the original subgoal was ∀x. P(x).\n    - allL2R(i)\n        This transforms a goal of form x=e, Γ |- Δ, ∀x. P(x) into Γ |- Δ, P(e), where the i-th antecedent formula in the original subgoal was x=e.\n    - cut(formula)\n        This introduces formula as an intermediate lemma to prove.\n        It transforms a goal of form Γ |- Δ into two subgoals:\n        (1) Use subgoal: formula, Γ |- Δ\n        (2) Show subgoal: Γ |- formula.\n\n### 5.2 Program / Modal Tactics\n\nFor modal formulas like [α]φ and ⟨α⟩φ, tactics handle:\n- assignments,\n- tests,\n- nondeterministic choice,\n- sequential composition,\n- duals.\nThese reduce program structure to simpler logical or arithmetic goals. You will almost never need to use these low-level tactics directly, as they are all handled by the high-level `unfold` tactic.\n\nThe loop rule, `loop(\"invariant\", i)`, transforms a goal of form  Γ |- [α*]φ, Δ where [α*]φ is at index i into three subgoals:\n    1. init subgoal: Γ |- invariant, Δ\n    2. step subgoal: invariant |- [α]invariant\n    3. post subgoal: invariant |- φ\nHere, invariant is the (literal) formula you provide as a loop invariant.\n\nThere is a second class of modality tactics used to simplify not the program inside the modality, but the postcondition after the modality or otherwise modify the modality. The most common are:\n- boxAnd(i)\n    Transforms a goal of form [a](P∧Q) to [a]P ∧ [a]Q. Usually followed by andR(i) to split into two subgoals.\n- GV(i)\n    Transforms a goal of form Γ |- [a]P, Δ to Γconst |- P, Δconst, where Γconst and Δconst are the subsets of Γ and Δ that contain only formulas with constants (no variables).\n- discreteGhost(\"x\", \"x0\", i)\n    Adds a new variable x0 and the antecedent formula x = x0. The position, i, should be that of the modality formula (usually 1).\n\n### 5.3 Differential Equation Tactics\n\nFor goals involving differential equations of the form:\n\n```\n[{x' = f(x) & Q}] P\n```\n\nyou can use the following high-level ODE tactics:\n- dIRule(i) (Differential Invariant)\n    Applies a differential invariant rule to the ODE formula at index i.\n    This proves formulas like [ODE] P where P may contain any comparison operator (<, <=, =, >=, >).\n    The rule generates two proof obligations:\n\t1.\tThe postcondition P holds initially, and\n\t2.\tThe derivative condition P' satisfies the correct sign constraint (depending on the operator) throughout the ODE.\n\t    For example, if in `[{x' = f(x) & Q}] P`,  P is p <= 0, the check is `Q |= [x':=f(x)] p' <= 0`;\n        if P is p > 0, the check is `Q |= [x':=f(x)] p' > 0`;\n        and similarly for the other operators.\n        Along with Q, any assumptions from the antecedents that had only constants (no variables) are also kept.\n        Note that you cannot use the invariant that you are trying to prove as an assumption in this subgoal, that is, you will not be able to assume p > 0 to prove p' > 0.\n    If these obligations are proved, the ODE is handled without solving it explicitly.\n\n- dC(“φ”, i) (Differential Cut)\nAdds an additional domain constraint φ to the ODE at index i.\nThis transforms a goal with `[{x'=f(x) & Q}] P` at position i into two subgoals:\n    1. Use:\n    The formula at position i becomes `[{x'=f(x) & Q ∧ φ}] P`\n    2. Show:\n    The formula at position i becomes `[{x'=f(x) & Q}] φ`\n\n- dW(i) (Differential Weakening)\nApplies weakening to an ODE goal at index i.\nIf the formula at index i was `[{x'=f(x) & Q}] P`, the new goal becomes `Q |- P`, which removes the ODE entirely. Along with Q, any assumptions from the antecedents that had only constants (no variables) are also kept.\n\nTactic `discreteGhost(\"x\", \"x0\", i)`, adds a new variable x0 and the antecedent formula x = x0. The position, i, should be that of the ODE formula (usually 1).\n\nAnother useful tactic is the Darboux tactic:\n`dbx(\"g\", 1)`. Given a goal of form `A |- [x'=f(x) & Q] p>=0`, this tactic generates two subgoals: `A |- p>=0` and `Q |- p' >= g*p`, where p' is the Lie derivative of p along the ODE x'=f(x). Here, >= can be replaced by any comparison operator.\nUnlike dIRule, dbx does not create further subgoals, and is itself a terminal tactic.\n\n⸻\n\n### 5.4 Arithmetic Tactics\n\nWhen there are no modalities left, the goal is purely arithmetic.\nThen, it is possible to use the `QE` tactic to close the goal.\nThe syntax `QE(\"Z3\")` runs QE with the Z3 SMT solver backend.\n\nTactic `hide(i)` removes formula with index i from the subgoal permanently.\nThe `fullSimplify` tactic to makes expressions simpler.\n\n⸻\n\n## 6. Working With Indices\n\n### 6.1 Index Semantics\n\nIndices refer to the current goal only:\n\t•\t1 is the first succedent formula.\n\t•\t2 is the second succedent formula, etc.\n\t•\t-1 is the first antecedent formula.\n    •\t-2 is the second antecedent formula, etc.\n\nAfter some tactics, the sequent may change, so indices may point to different formulas.\n\n### 6.2 Common Failure: Incorrect Positions\n\nA common reason for tactic failure is incorrect indices, e.g.:\n\t•\tthe index no longer refers to the formula you expect, or\n\t•\tthe selected formula does not match the rule (e.g., andL on a non-∧ formula).\n\n⸻\n\n## 7. Combinators\n\nUseful control constructs:\n\t•\tSequential composition: `t1 ; t2`\n    Run t1 then t2 on the resulting goals.\n\t•\tBranching `<(t1, t2)`\n    Apply t1 to the first branch and t2 to the second, after a rule that splits the goal.\n\nCombining these is generally enough to express proofs.\n\n⸻\n\n## 8. High-Level Tactics\n\n- unfold\n    Unfolds simpler constructs (assignments, tests, choices, sequences, antecedent conjunctions, dual, implication). Often changes sequent structure and might create multiple branches.\n- auto\n    Applies a library of rules to try to automatically prove the goal. Generally succeeds on simpler goals.\n\n⸻\n\n## 9. Debugging\n\nYou can insert print between suspicious steps to identify where the proof diverges from expectations.\n\n_____\n\n## 10. Additional Tips:\n\n### 10.1 Syntactic:\n\n- Comments in Bellerophon are written using the syntax `/* This is a comment */`.\n- Do not use a concluding semicolon after the last tactic in your script. The semicolon is only a separator, not a terminator. Write `t1 ; t2`, not `t1 ; t2 ;`.\n- The branching combinator `<( ... )` does not have a closing angle bracket. Write `<(t1, t2)`, not `<(t1, t2)>`.\n- When using branching tactics like dC or cut, further development should be nested inside the branches using `<( ..., ... )` syntax. Write `dC(\"formula\", pos); <(t1; dC(\"formula\", pos); <(t2, t3), t4)`, not `dC(\"formula\", pos); <(t1, t4) ; dC(\"formula\", pos); <(t2 ; t3)`. Here, the first dC splits the goal into two branches. On the first branch we apply t1 followed by dC that further splits into two branches where we apply t2 and t3 respectively. On the second branch of the first dC, we apply t4.\n- Output along the lines of \"Exception in thread \"main\" 6:2 Lexer 6:2 Lexer does not recognize input at ...\" indicates that there is a syntax error in the Bellerophon tactic. There can still be syntax errors that do not get caught by the lexer, though.\n- The Bellerophon parser supports only ASCII characters.\n\n### 10.3 Other Advice:\n- Do not assume a branch is closed until you print and verify that it shows \"proved\". Therefore, after applying a terminal tactic like auto or QE, it is good practice to print the state right after to check that the tactic indeed closed the goal.\n- For the full list of tactics, see https://github.com/LS-Lab/KeYmaeraX-release/tree/master/keymaerax-webui/src/main/resources/help/axiomsrules.\n\n### 10.4 Common Error Messages:\n\n#### Subgoal mismatch.\nError messages of the form \"<(e)(v) is only defined when len(e) = len(v), but 2!=0 subgoals (v)\" indicates a branching combinator `<( ... )` has the wrong number of branches.\nIn this example, a branching combinator for two branches was used, but the goal was actually already closed (0 subgoals).\n\nSometimes, this error message is also reached by auto. This is a bug in the implementation of auto that is triggered on some formula shapes. If this happens, since you cannot control auto, just try to work around by using a different tactic or breaking down the proof into smaller steps.\n\n#### dW Bug.\nSometimes, dW fails with an error message like \n```\n    Not found: locator 'R==\"a&b->c\" of position tactic ... does not match anywhere in succedent of ... from ==> 1: a -> c\n```\nwhere typically a is the domain constraint of the ODE to which we are applying dW, c is the postcondition, and b consists of some formulas from the antecedent with only constants.\n\nThis is a bug in KeYmaera X.\nA trick that often works around this bug is cutting in \"1=1\". Replace `dW(i); *subsequent tactic*` with `cut(\"1=1\"); <(dW(i); *subsequent tactic*, QE(\"Z3\") using \"1=1\")`.\nThe syntax \"using \"1=1\"\" tells QE to ignore all antecedent and consequent formulas in this subgoal except \"1=1\".\n\nIf the error persists, you can try first removing antecedent formulas with only constants that are appearing in the error message, and only then apply dW. Use hide(i) to hide the formula at position i.\n\n⸻\nEnd of Bellerophon Tactic Guide\n____",
+      "title": "Bellerophon No Patterns",
+      "description": "Published prompt template included for completeness.",
+      "category": "additional",
+      "pipeline": "reference",
+      "rawFiles": [
+        "BellerophonNoPatterns.jinja"
+      ]
+    },
+    {
+      "id": "ComputeBoundFormula",
+      "system": "You are given a differential game logic (dGL) game loop, an analysis (what plays Angel and Demon have, what are the game's control modes), and a strategic plan for Angel to maintain a post condition.\nDuring the execution of this plan, certain variables are going to evolve in value, and we need to establish polynomial bounds on these variables.\n\nYou must produce a SINGLE concise polynomial bound formula for the requested variable upper/lower bound.\n\nHere is some information about dGL:\n{% include 'DGlSyntax.jinja' %}\n\nInputs:\n- dGL Loop.\n- Analysis of control (Angel vs Demon).\n- Strategy plan.\n- A global analysis of what variables need to be bounded, which may introduce new intermediate variables representing physically meaningful quantities.\n- Bound request. This is the part you should pay close attention to. It states the one variable and the bound type (upper or lower) you need to produce a polynomial bound formula for. It will provide the following information:\n    * side of bound (upper or lower),\n    * bound type, which is one of the following:\n        - per-iteration: bounds a variable for a single loop iteration.\n        - for-all-time: holds over arbitrarily many iterations / unbounded time.\n        - time-parameterized: bounds that have explicit parameter s for global time from the current moment.\n    * assumptions, such as what action Angel is playing,\n    * known bounds of other variables that you can assume are going to hold while coming up with this bound.\n- Optionally, you may be provided previous bounding attempts and feedback.\n\nOutput:\n- Output a brief (2-3 sentences) explanation, followed by a blank line, followed with a final code block containing ONLY the bound formula.\n- Use ONLY polynomial expressions (no exp, log, sin, cos, transcendental functions). Allowed: + - * numeric constants, variable names.\nAdditionally for time-parameterized bounds, you may use the global time variable s if needed, and special \"initial value\" variable v0 for the variable v being bounded. The initial value variable represents the value of v right now and must use the suffix \"0\", e.g., x0 for variable x.\n- For time-parameterized bounds, express as polynomial in s (e.g., v <= v0 + a1*s + a2*s^2).\n- Maintain variable names exactly as given. Do not introduce new variables (except for global time s and initial value variables).\n- If previous feedback indicates an issue, correct it.\n- ONE formula only; if min/max needed, use inequality and logical operators.\n\nIf the bound is per-iteration, avoid time variable unless explicitly required.\nIf the bound is for-all-time, use inequalities valid for all s >= 0. s should not appear in the formula.\n\nHere are some tips on reasoning about complicated dynamics:\n{% include 'ReasoningTips.jinja' %}\n\nYou will be shown zero or more examples of how to answer, followed by a new question to answer.",
+      "instance": "The dGL Loop:\n{{ query.loop }}\n\nControl analysis:\n{{ query.analysis }}\n\nAngel's Strategy plan:\n{{ query.plan }}\n\nConstraints we need:\n{{ query.constraints_text }}\n\nBound request that you should find a polynomial bound formula for:\n- Variable to bound: {{ query.bound_name }}\n- Side: {{ query.bound_side }}\n- Type: {{ query.bound_type }}\n- Assumptions on the game under which the bound holds: {{ query.assumptions }}\n- Known bounds of other variables that you can assume hold while coming up with this bound:\n{% for db in query.dependency_bounds %}\n    * {{ db }}\n{% endfor %}\n\n{% if query.previous_attempt %}\nPrevious attempt (incorrect):\n{{ query.previous_attempt }}\n{% endif %}\n{% if query.previous_feedback %}\nFeedback to address:\n{{ query.previous_feedback }}\n{% endif %}\n\nProvide the polynomial bound formula now.\nGive a brief (2-3 sentences) explanation, followed by a blank line, followed with a final code block containing ONLY the bound formula.\nThere should be no text after the code block.",
+      "shared": "",
+      "title": "Compute Bound Formula",
+      "description": "Constructs one polynomial bound formula at a time.",
+      "category": "primary",
+      "pipeline": "synthesis",
+      "rawFiles": [
+        "ComputeBoundFormula.system.jinja",
+        "ComputeBoundFormula.instance.jinja"
+      ]
+    },
+    {
+      "id": "ComputeODEPrecondition",
+      "system": "Your task is to guess the precondition of an ordinary differential equation (ODE).\nYou are given the ODE specification in differential game logic (dGL) and Angel's desired postcondition.\nYou must compute the precondition under which Angel can ensure that the postcondition holds after the ODE evolution, while respecting the evolution domain constraint.\n\nYou should provide a precondition that is logically sound according to the semantics of differential dynamic logic.\nHere is some background on dGL:\n{% include 'DGlSyntax.jinja' %}\n\nFor ODEs controlled by Angel, the weakest precondition computation involves finding the largest set of initial states from which the system can evolve and satisfy the postcondition while respecting the constraint Q.\n\nFor ODEs controlled by Demon, the weakest precondition computation involves finding the largest set of initial states from which the system can evolve and satisfy the postcondition while respecting the constraint Q *regardless of how long the system is run, which is outside our control*. We cannot assume anything about duration except that Q must be satisfied throughout every permissible duration.\n\nReturn your answer as a formula in KeYmaera X syntax.\n{% include 'KyxFormulaSyntax.jinja' %}\n\nUse only variables you see in the problem. For example, if the problem has `x`, use `x`, not `x(0)`.\n\nYou may optionally be provided with extra information: the overall structure of the game in which this ODE appears, and/or a plan describing Angel's control strategy that influences the structure of the postcondition.\nIf so, you should strategically use this information to strengthen your precondition.\nFor example, if the line in the overall game structure before the ODE is `t:=0;`, then it is safe to assume `t=0` in your precondition, since this will always hold when the ODE is reached, and therefore not cause any loss of generality.\nSimilarly, if the plan indicated that a certain disjunct in the postcondition comes from a specific control mode involving Angel choosing certain values or bounds on variables, you can incorporate these choices or bounds into the corresponding disjunct of your precondition to strengthen it.\nIn general, pay attention to the structure of the postcondition and how it would hold in the context of the overall game and/or plan, and use this to inform your precondition.\n\nProvide up to 4 lines describing you reasoning. Then after a blank line, write a code block with the precondition in KeYmaera X syntax.\n\n{% include 'Instructions.jinja' %}\n",
+      "instance": "ODE specification:\n{{ query.odes }}\n\nPostcondition: {{ query.postcondition }}\n\nWhat is the weakest precondition for this ODE?\n",
+      "shared": "",
+      "title": "Compute ODEPrecondition",
+      "description": "Published prompt template included for completeness.",
+      "category": "additional",
+      "pipeline": "reference",
+      "rawFiles": [
+        "ComputeODEPrecondition.system.jinja",
+        "ComputeODEPrecondition.instance.jinja"
+      ]
+    },
+    {
+      "id": "ComputeODEPreconditionBacktracking",
+      "system": "Your task is to guess the precondition of a differential game logic (dGL) game consisting of an ordinary differential equation (ODE) given the ODE specification and the postcondition.\nYou should provide a precondition that is logically sound according to the semantics of differential dynamic logic.\nThe precondition should ideally be the weakest condition under which executing the ODE will satisfy the postcondition. But in the interest of tractability, you may provide a stronger, simpler precondition if necessary. Still, aim for the weakest precondition you feel confident about.\n\n## Background information\n\nHere is some information about dGL.\n\n{% include 'DGlSyntax.jinja' %}\n\nA *precondition* for a given game is a logical formula that, when it is true before the game starts, there exists a strategy for Angel to ensure that the *postcondition* holds after the game ends, regardless of how Demon plays.\nThe precondition of an ODE is going to be very different depending on whether Angel controls its duration of Demon does.\n\nFor Angel-controlled ODEs of the form {x'=f(x) & Q}, the weakest precondition computation amounts to finding the largest set of initial states from which the system can evolve and satisfy the postcondition while respecting the constraint Q.\nYou choose how long the ODE runs so there should just exist *some* time duration of running the ODE after which the postcondition holds (with Q holding the whole time).\n\nFor Demon-controlled ODEs of the form {x'=f(x) & Q}^@, weakest precondition computation is finding the largest set of initial states from which, for all possible durations that the system could evolve while respecting the constraint Q, we will remain in a region satisfying the postcondition.\nThe postcondition should finally hold *regardless of how long the system is run, which is outside our control*.\nThe only trajectories we don't need to worry about are those where Q is not satisfied throughout.\n\n## Input\nYou will be given the following inputs:\n1. The ODE game.\n2. The postcondition that must hold after the ODE ends.\n3. The overall game in which this ODE appears. From this context, you should carefully account for nested duals and figure out whether you are dealing with an Angel or Demon controlled ODE, and reason accordingly.\nAnother thing you should pay attention to is whether there are limitations of the values of variables, or control modes that make your job easier.\nFor example, if you know that velocity can only ever be 0 or some positive constant V based on the rest of the game, then these are the only cases you need to account for in your precondition. You should still make any such assumptions explicit in your precondition, for example, by writing an invariant of shape v=0 & ... | v=V & V>0 & ... .\n4. Optionally, a log of previous computations for identifying preconditions for the whole game. Ultimately, you are trying to find preconditions in the whole game and this is just a sub-problem. This history may include failed attempts at guessing the precondition of this very ODE and postcondition, in which case you should pay special attention to see what went wrong and avoid repeating mistakes.\n\n## Output\n\nReturn your answer as a (quantifier-and-modality-free) logical formula in KeYmaera X syntax:\n- Use & for logical AND\n- Use | for logical OR  \n- Use ! for logical NOT\n- Use = for equality\n- Use <, <=, >, >= for comparisons\n- Use parentheses for grouping\n\nUse only variables you see in the problem. For example, if the problem has `x`, use `x`, not `x(0)`.\n\nProvide up to 4 lines describing you reasoning. Then after a blank line, write a code block with the precondition in KeYmaera X syntax.\n\n## Additional Advice\n\n{% include 'ReasoningTips.jinja' %}\n\nFirst carefully determine whether the ODE is Angel-controlled or Demon-controlled by analyzing the overall game context, especially looking for dual operators that may switch control.\n\nIf you are assuming a certain mode of operation that makes your postcondition hold, remember to include in your precondition any conditions necessary to ensure that this mode is the one that will operate during the ODE. For example, if you need control variables to be set to a certain value, your precondition should explicitly have a clause requiring this.\n",
+      "instance": "ODE specification:\n{{ query.odes }}\n\nPostcondition:\n{{ query.postcondition }}\n\nOverall game in which this sub-problem arises:  \n{{ query.overall }}\n\n{% if query.history %}\nHere is a log of what you have tried in the past in the process of precondition computation:\n\n{{ query.history }}\n\n{% endif %}\n\nWhat is the weakest precondition for this ODE?\n",
+      "shared": "",
+      "title": "Compute ODEPrecondition Backtracking",
+      "description": "Published prompt template included for completeness.",
+      "category": "additional",
+      "pipeline": "reference",
+      "rawFiles": [
+        "ComputeODEPreconditionBacktracking.system.jinja",
+        "ComputeODEPreconditionBacktracking.instance.jinja"
+      ]
+    },
+    {
+      "id": "ComputeODEPreconditionControl",
+      "system": "Your task is to guess the precondition of a differential game logic (dGL) game consisting of an ordinary differential equation (ODE) given the ODE specification and the postcondition.\n\nThis is a step in the process of finding preconditions over an entire dGL game that contains the loop.\nYou should provide a precondition that is logically sound according to the semantics of differential dynamic logic.\nYou will be given the ODE, postcondition, and context such as the overall game in which the ODE appears and the strategy that Angel is trying to execute.\nYour job is to come up with a suitable precondition for the ODE in light of this information.\n\n## Background information\n\nHere is some information about dGL.\n\n{% include 'DGlSyntax.jinja' %}\n\nA *precondition* for a given game is a logical formula that, when it is true before the game starts, there exists a strategy for Angel to ensure that the *postcondition* holds after the game ends, regardless of how Demon plays.\nThe precondition of an ODE is going to be very different depending on whether Angel controls its duration of Demon does.\n\nFor Angel-controlled ODEs of the form {x'=f(x) & Q}, the weakest precondition computation amounts to finding the set of initial states from which the system can evolve and satisfy the postcondition while respecting the constraint Q.\nYou choose how long the ODE runs so there should just exist *some* time duration of running the ODE after which the postcondition holds (with Q holding the whole time).\n\nFor Demon-controlled ODEs of the form {x'=f(x) & Q}^@, weakest precondition computation is finding the set of initial states from which, for all possible durations that the system could evolve while respecting the constraint Q, we will remain in a region satisfying the postcondition.\nThe postcondition should finally hold *regardless of how long the system is run, which is outside our control*.\nThe only trajectories we don't need to worry about are those where Q is not satisfied throughout.\n\n## Input\nYou will be given the following inputs:\n1. The ODE game.\n2. The postcondition that must hold after the ODE ends.\n3. The overall game in which this ODE appears, and an analysis of its control roles and modes. From this context, you should figure out whether you are dealing with an Angel or Demon controlled ODE, and whether there are limitations of the values of variables, or control modes that make your job easier.\nFor example, if you know that velocity can only ever be 0 or some positive constant V based on the rest of the game, then these are the only cases you need to account for in your precondition. You should still make any such assumptions explicit in your precondition, for example, by writing an invariant of shape v=0 & ... | v=V & V>0 & ... .\n4. Optionally, a log of previous computations for identifying preconditions for the whole game. Ultimately, you are trying to find preconditions in the whole game and this is just a sub-problem. This history may include failed attempts at guessing the precondition of this very ODE and postcondition, in which case you should pay special attention to see what went wrong and avoid repeating mistakes.\n\n## Output\n\nReturn your answer as a (quantifier-and-modality-free) logical formula in KeYmaera X syntax:\n- Use & for logical AND\n- Use | for logical OR  \n- Use ! for logical NOT\n- Use = for equality\n- Use <, <=, >, >= for comparisons\n- Use parentheses for grouping\n\nUse only variables you see in the problem. For example, if the problem has `x`, use `x`, not `x(0)`.\n\nProvide up to 4 lines describing you reasoning. Then after a blank line, write a code block with the precondition in KeYmaera X syntax.\n\n## Additional Advice\n\n{% include 'ReasoningTips.jinja' %}\n\nFirst carefully determine whether the ODE is Angel-controlled or Demon-controlled by analyzing the overall game context, especially looking for dual operators that may switch control.\n\nIf you are assuming a certain mode of operation that makes your postcondition hold, remember to include in your precondition any conditions necessary to ensure that this mode is the one that will operate during the ODE. For example, if you need control variables to be set to a certain value, your precondition should explicitly have a clause requiring this.\n",
+      "instance": "ODE specification:\n{{ query.odes }}\n\nPostcondition:\n{{ query.postcondition }}\n\nOverall game in which this sub-problem arises:  \n{{ query.overall }}\n\n{% if query.history %}\nHere is an analysis of the game and Angel's planned strategy, possibly followed by a log of what you have tried in the past in the process of precondition computation:\n\n{{ query.history }}\n\n{% endif %}\n\nWhat is the weakest precondition for this ODE?\n",
+      "shared": "",
+      "title": "Compute ODEPrecondition Control",
+      "description": "Proposes a precondition for a differential-equation subgame.",
+      "category": "primary",
+      "pipeline": "synthesis",
+      "rawFiles": [
+        "ComputeODEPreconditionControl.system.jinja",
+        "ComputeODEPreconditionControl.instance.jinja"
+      ]
+    },
+    {
+      "id": "ConstructInvariant",
+      "system": "You are given a differential game logic (dGL) loop and a desired postcondition that Angel (the controller) aims to maintain.\nAn inductive invariant has already been established, but we want to expand it to cover a larger set of conditions where Angel can maintain controllability.\n\nYou have a plan describing the Angel's control strategy to remain safe under broadened initial conditions by expanding the loop invariant, as well as some intermediate conditions that characterize these broadened initial conditions.\nFinally, you also have bounds on various variables that you can plug into the intermediate conditions.\nYour task is to put the pieces together and output a single strengthened loop invariant formula based on the provided information.\n\nHere is some background on dGL:\n{% include 'DGlSyntax.jinja' %}\n\nHere is some advice on reasoning about complex dGL games:\n{% include 'ReasoningTips.jinja' %}\n\nInputs you receive:\n- Pretty-printed loop game.\n- Desired postcondition that Angel aims to maintain.\n- Current invariant.\n- Analysis of player moves and control modes.\n- A plan describing Angel's strategy to stay safe. This plan may either be 'reach-expansion' (aiming to safely reach the existing invariant) or 'self-inductive' (an inductive strategy in itself). The plan first states any initial conditions/assumptions, and the control mode it starts in, followed by a sequential list of Angel's moves.\n- Semi-formal constraints describing desired invariant conditions. This contains three parts.\n    1. Inequalities/Equations.\n    2. Introduced Variables.\n    3. Required Bounds.\nPay attention mostly to the first part. You will most likely want to put together a single formula from these inequalities/equations, most likely by taking their conjunction.\n- Bound formulas, replacing informal parts of the previous initial condition constraints (one per line: \"name: formula\").\n- Optional previous attempt and checker feedback.\n\nRequirements:\n- Output a few lines of explanation, followed by a blank line, followed by a final code block containing ONLY the new invariant formula.\n- Formula must consist of polynomial inequalities/equations along with logical operators using the existing variable names; avoid transcendental functions and never use new introduced variables.\n- The formula expressing the new region from which Angel can stay safe by following the new strategy typically respects all the bounds and constraints surfaced during the analysis; you can incorporate them into a single invariant predicate by conjunction.\n- Remember to take the disjunction of the new safe initial conditions with the previously established invariant, so the new invariant region is a superset.\n- In the initial explanation, briefly summarize which part of the invariant is induced by what control strategy or assumptions.\n- If previous feedback indicates an issue, correct it in this attempt.\n",
+      "instance": "Loop:\n{{ query.loop }}\n\nAngel's desired postcondition:\n{{ query.postcondition }}\n\nCurrent invariant:\n{{ query.current_invariant }}\n\nControl analysis:\n{{ query.analysis }}\n\nStrategy plan:\n{{ query.plan }}\n\nConstraints:\n{{ query.constraints_text }}\n\nDerived bounds:\n{{ query.bounds_text }}\n\n{% if query.previous_attempt %}\nPrevious attempt (invalid):\n{{ query.previous_attempt }}\n{% endif %}\n{% if query.previous_feedback %}\nFeedback:\n{{ query.previous_feedback }}\n{% endif %}\n\nOutput a few lines of explanation, followed by a blank line, followed by a final code block containing ONLY the new invariant formula.\nThere should be no text after the code block.\nYou will now be shown 0 or more examples of how to answer, followed by the question to answer.",
+      "shared": "",
+      "title": "Construct Invariant",
+      "description": "Combines the plan, constraints, and bounds into a final invariant.",
+      "category": "primary",
+      "pipeline": "synthesis",
+      "rawFiles": [
+        "ConstructInvariant.system.jinja",
+        "ConstructInvariant.instance.jinja"
+      ]
+    },
+    {
+      "id": "Counterexamples",
+      "system": "",
+      "instance": "",
+      "shared": "# On Counterexamples for dGL Theorems\n\nSometimes, the dGL formula you are trying to prove is not valid and needs to be repaired. Counterexamples establish when and why a formula is not valid. However, separating genuine counterexamples showing the original formula is not valid from spurious counterexamples showing that a subgoal arising from bad proof directions is not valid can be subtle. This section provides guidance on how to interpret counterexamples arising during proof attempts.\n\nTODO.",
+      "title": "Counterexamples",
+      "description": "Guidance for interpreting counterexamples.",
+      "category": "shared",
+      "pipeline": "reference",
+      "rawFiles": [
+        "Counterexamples.jinja"
+      ]
+    },
+    {
+      "id": "DGlSyntax",
+      "system": "",
+      "instance": "",
+      "shared": "In differential game logic (dGL), there are two players:\n- **Angel**: The controllable player who makes choices we can control. Angel constructs include:\n  - Angel choices: `a ++ b` (we choose between a and b)\n  - Angel loops: `{a}*` (we choose how many iterations)\n  - Angel tests: `?P` (we can proceed if P holds, otherwise we immediately lose)\n  - Angel ODEs: `{x'=f(x) & Q}` (we control the duration)\n  - Angel nondeterministic assignments: `x := *` (we choose the value)\n\nThere is the dual operator `^@` that switches Angel and Demon roles in a game construct.\nDuals can be nested arbitrarily, so carefully check nesting levels to determine which player controls each action.\nBeing within an odd number of `^@` operators indicates Demon control, while an even number (including zero) indicates Angel control.\nFor example, in the game `{(a ++ b)^@; (c++d)}^@`, the choice between `a` and `b` is controlled by Angel, being within two `^@` operators, while the choice between `c` and `d` is controlled by Demon.\nUsing this notation, we go over the Demon constructs below, indicating that they are Demon-controlled by wrapping them in a single `^@` operator.\n\n- **Demon**: The adversarial player who makes choices we cannot control. Demon has all the same constructs as Angel.\n  - Demon choices: `{a ++ b}^@` (adversary chooses between a and b)\n  - Demon loops: `{a*}^@` (adversary chooses how many iterations)\n  - Demon tests: `{?P}^@` (adversary can proceed if P holds, and immediately loses otherwise. So Angel can *assume* in subsequent game play that P held at this point; otherwise she would already have won.)\n  - Demon ODEs: `{x'=f(x) & Q}^@` (adversary controls the duration)\n  - Demon nondeterministic assignments: `{x := *}^@` (adversary chooses the value)\n\nAdditionally, the non-controlled operations are:\n- Assignment: `x := e` (deterministic assignment like in regular programs)\n- Sequential composition: `a; b` (first play a, then b)\n\n## Notes\n- ODEs can sometimes introduce unmatched single quotes, so account for that when parsing.\n- In syntax such as { a++b; x:=* }*^@, the `^@` applies to the entire loop including its body. In this example, Demon controls the choice within the loop between a and b, as well as the assignment to x, because both are inside one `^@`.",
+      "title": "DGl Syntax",
+      "description": "Reference for dGL game syntax and Angel/Demon semantics.",
+      "category": "shared",
+      "pipeline": "reference",
+      "rawFiles": [
+        "DGlSyntax.jinja"
+      ]
+    },
+    {
+      "id": "ExtractBoundsNeeded",
+      "system": "You are given constraint text that contains a section \"Required Bounds\" listing bounds needed.\n\nTask: Extract a structured JSON representation of the bounds.\n\nInput:\nText that has three sections:\n1. Inequalities/Equations.\n2. Introduced Variables.\n3. Required Bounds.\nYour task is to extract the \"Required Bounds\" section into a structured JSON format.\nThe format of this Required Bounds section is a list of bounds whose explicit mathematical expression is required to replace any English phrases in the inequalities from section 1.\nEach list item has the following information:\n  * The side of the bound (Upper or Lower),\n  * The variable it applies to.\n  * The type of bound:\n    - `per-iteration`: bounds a variable for a single loop iteration,\n    - `for-all-time`: (holds over arbitrarily many iterations / unbounded time), or\n    - `time-parameterized`: bound expressed as a function of time.\n  * Any dependencies on other bounds in the list. Ensure there are no circular dependencies.\n  * Any assumptions about the mode/Angel choices under which the bound holds.\n\nOutput:\nProvide a line of explanation followed by an empty line, and then a final coding containing valid JSON with the following structure:\n[\n  {\"name\": str, \"side\": str, \"btype\": str, \"assumptions\": str, \"dependencies\": [str, ...], \"is_new_var\": bool}, ...\n]\n\nRules:\n- Preserve original variable names.\n- \"name\" field should combine the side and variable, e.g., \"Upper bound on x\", and optionally include BType if needed to ensure that each name is unique.\n- \"side\" should be either \"Upper\" or \"Lower\".\n- BTypes should map to one of \"for-all-time\", \"per-iteration\", \"time-parameterized\".\n- Assumptions is a string in English/math.\n- If no assumptions or dependencies, use empty string or empty list respectively.\n- Assumptions is a list of names of other bounds, where each name is of type str.\n- Names should be exactly consistent between the name field and dependencies list.\n- Mark is_new_var as true if the variable has a list item devoted to it in section 2, and false otherwise.\n- Do NOT invent bounds not present.\n",
+      "instance": "Constraints text to parse:\n{{ query.constraints_text }}\n\nExtract bounds now.\n",
+      "shared": "",
+      "title": "Extract Bounds Needed",
+      "description": "Extracts structured bound obligations from invariant constraints.",
+      "category": "primary",
+      "pipeline": "synthesis",
+      "rawFiles": [
+        "ExtractBoundsNeeded.system.jinja",
+        "ExtractBoundsNeeded.instance.jinja"
+      ]
+    },
+    {
+      "id": "ExtractConstantAssumptions",
+      "system": "You are given a differential game logic loop, and some text analysing the loop that includes formulas that should hold initially.\nYour task is to extract assumptions on constants from this text.\n\nA variable is considered a constant if it is never assigned to or changed within the loop.\n\nInput:\n- The loop string.\n- The constraints text, which contains sections: \"Inequalities/Equations\", \"Introduced Variables\", and \"Required Bounds\".\n\nYou should focus on the \"Inequalities/Equations\" section, looking through the listed constraints to identify assumptions that involve only constant variables.\nIf there is even one variable in a constraint that is not a constant, that constraint should not be included in the output.\nReturn the extracted constraints as a single logical formula (e.g., F > 0 & c1 > 0).\nIf there are no assumptions on constants, return \"True\".\nOutput ONLY the formula string.\n",
+      "instance": "Loop:\n{{ query.loop_str }}\n\nConstraints:\n{{ query.constraints_text }}\n\nExtract the assumptions on constants as a single formula.\nOutput ONLY the formula string.",
+      "shared": "",
+      "title": "Extract Constant Assumptions",
+      "description": "Identifies constant assumptions needed by a proposed invariant.",
+      "category": "primary",
+      "pipeline": "synthesis",
+      "rawFiles": [
+        "ExtractConstantAssumptions.system.jinja",
+        "ExtractConstantAssumptions.instance.jinja"
+      ]
+    },
+    {
+      "id": "GetNextAction",
+      "system": "You are trying to assign the preconditions of a differential game logic game.\nYou have been proposing preconditions using backwards reasoning where you first proposed something for subgames closest to the end and then worked backwards recursively.\nNow you have reached a cross-roads and must choose a next action.\nYou are given the original program, a log of what you were doing last, and the options of actions available to you.\nReply with a brief explanation, followed by a newline, and then a code block containing only the word for the action, e.g., `try-proof`.\n\n## Background information\n\nHere is some information about dGL.\n\n{% include 'DGlSyntax.jinja' %}\n\n{% include 'LabelSyntax.jinja' %}\n\nA *precondition* for a given game is a logical formula that, when it is true before the game starts, there exists a strategy for Angel to ensure that the *postcondition* holds after the game ends, regardless of how Demon plays.\n\n## Input\n\n1. overall_game: The overall game in which the current subgame appears.\n2. history: A log of previous attempts at identifying preconditions for subgames and verifying whether they hold by stepping through the game and checking if the preconditions compose to ensure the postcondition is satisfied. Examine this history to figure out what just happened. Did you propose a bad ODE precondition? Did the precondition you proposed end up not being compatible with an earlier chosen loop invariant? Did you come up with a good invariant but you think it can be improved upon?\n3. backtrack_to: The options you can choose for your next action.\n\n## Possible Actions\n\nYou will be shown a list of actions to choose from, based on the current situation.\nThe two possible situations are:\n\n### Expanding an Invariant\n\nYou have found a correct invariant for a loop in the program. Now you must decide whether to move on or try to expand it.\n- `expand-invariant`: Propose a new loop invariant for the current subgame. This is useful if when you believe it is possible to expand upon the current invariant with something more liberal.\n- `keep-invariant`: Keep the current loop invariant for the current subgame. This is useful if you believe the current invariant is already non-trivial and hard to improve on with more acceptable states.\n\n### Correcting a Failed Proof Attempt\n\nThe preconditions that you proposed most recently didn't check out.\nEither it was not provably a precondition of the current subgame, or if part of a loop, your provided preconditions led to a precondition for the loop body that was not implied by the loop invariant.\n\nThe error could lie in the most recent condition, or earlier in the process where you may have made a choice previously that backed you into a corner for this subgame, or maybe the condition is correct but too difficult for the automatic theorem prover to check. Now you must decide till what point to backtrack, or whether to try harder to prove the current subgame result using a tactic with KeYmaera X.\n\nYou are given the original program, in which some points in the game are labeled as subgame_id.\n- `backtrack-to:id`: Backtrack to the subgame with the given id and propose a new precondition there. If you choose this option, in your reply, write `backtrack-to:id` where id is the id of the subgame you want to backtrack to. When backtracking, you can even choose the current subgame to retry. Loops are considered to occur \"later\" than their body, so if you backtrack to a subgame inside a loop, you won't be asked for a new loop invariant and the existing invariant will be used.\n- `try-proof`: Try to prove the current subgame using KeYmaera X with the precondition you proposed most recently. If you aren't sure why the most recent precondition was bad, this could be a good option because the manual proof attempt can give you feedback on what's wrong with the precondition.\n\n## Output\n\nWrite a few lines of explanation, followed by a newline, and then a code block containing only the action you choose, e.g., `try-proof`.\n\nI will now show you examples of how to respond, followed by the current case.\n",
+      "instance": "The overall game with labels is:\n{{ query.overall_game }}\n\nThe history of checking outcomes so far is:\n{{ query.history }}\n\nThe options you can choose are:\n{{ query.backtrack_to }}",
+      "shared": "",
+      "title": "Get Next Action",
+      "description": "Published prompt template included for completeness.",
+      "category": "additional",
+      "pipeline": "reference",
+      "rawFiles": [
+        "GetNextAction.system.jinja",
+        "GetNextAction.instance.jinja"
+      ]
+    },
+    {
+      "id": "GetNextActionControl",
+      "system": "You are trying to assign the preconditions of a differential game logic game.\nYou have been proposing preconditions using backwards reasoning where you first proposed something for subgames closest to the end and then worked backwards recursively.\nNow you have reached a cross-roads and must choose a next action.\nYou are given the original program, a log of what you were doing last, and the options of actions available to you.\nReply with a brief explanation, followed by a newline, followed by a code block containing only the word for the action.\n\n## Background information\n\nHere is some information about dGL.\n\n{% include 'DGlSyntax.jinja' %}\n\n{% include 'LabelSyntax.jinja' %}\n\nA *precondition* for a given game is a logical formula that, when it is true before the game starts, there exists a strategy for Angel to ensure that the *postcondition* holds after the game ends, regardless of how Demon plays.\n\n## Input\n\n1. The current subgame for which you were trying to propose preconditions.\n2. overall_game: The overall game in which the current subgame appears.\n3. Analysis of the game and the control strategy Angel is trying to execute that the chosen preconditions should support.\nThis is followed by a log of previous attempts at identifying preconditions for subgames and verifying whether they hold by stepping through the game and checking if the preconditions compose to ensure the postcondition is satisfied. Examine this history to figure out what just happened. Did you propose a bad ODE precondition? Did the precondition you proposed end up not being compatible with an earlier chosen loop invariant? Did you come up with a good invariant but you think it can be improved upon?\n4. The options you can choose for your next action.\n\n## Possible Actions\n\nThe preconditions that you proposed most recently didn't check out.\nEither it was not provably a precondition of the current subgame, or if part of a loop, your provided preconditions led to a precondition for the loop body that was not implied by the loop invariant.\n\nThe error could lie in the most recent condition, or earlier in the process where you may have made a choice previously that backed you into a corner for this subgame, or maybe the condition is correct but too difficult for the automatic theorem prover to check. Now you must decide till what point to backtrack, or whether to try harder to prove the current subgame result using a tactic with KeYmaera X.\n\nYou are given the original program, in which some points in the game are labeled as subgame_id.\n- `backtrack-to:id`: Backtrack to the subgame with the given id and propose a new precondition there. If you choose this option, in your reply, write `backtrack-to:id` where id is the id of the subgame you want to backtrack to. When backtracking, you can even choose the current subgame to retry. Loops are considered to occur \"later\" than their body, so if you backtrack to a subgame inside a loop, you won't be asked for a new loop invariant and the existing invariant will be used.\n- `try-proof`: Try to prove the current subgame using KeYmaera X with the precondition you proposed most recently. If you aren't sure why the most recent precondition was bad, this could be a good option because the manual proof attempt can give you feedback on what's wrong with the precondition.\n\n## Output\n\nWrite a few lines of explanation, followed by a newline, and then a code block containing the action you choose. For example, a valid code block is:\n\n```\ntry-proof\n```\n\nI will now show you zero of more examples of how to respond, followed by the current case.\n",
+      "instance": "The current subgame is:\n{{ query.current_game }}\n\nThe overall game with labels is:\n{{ query.overall_game }}\n\nHere is an analysis of the game followed by logs of precondition computation and checking so far:\n{{ query.history }}\n\nThe options you can choose are:\n{{ query.backtrack_to }}",
+      "shared": "",
+      "title": "Get Next Action Control",
+      "description": "Chooses the next synthesis or proof-repair action, including a backtracking target.",
+      "category": "primary",
+      "pipeline": "synthesis",
+      "rawFiles": [
+        "GetNextActionControl.system.jinja",
+        "GetNextActionControl.instance.jinja"
+      ]
+    },
+    {
+      "id": "GetNextActionControlNoProving",
+      "system": "You are trying to assign the preconditions of a differential game logic game.\nYou have been proposing preconditions using backwards reasoning where you first proposed something for subgames closest to the end and then worked backwards recursively.\nNow you have reached a point where the proofs are not working out and must choose what point to backtrack to as your next action.\nYou are given the original program, a log of what you were doing last, and the options of actions (bactrack points) available to you.\nReply with a brief explanation, followed by a newline, followed by a code block containing only the word for the action.\n\n## Background information\n\nHere is some information about dGL.\n\n{% include 'DGlSyntax.jinja' %}\n\n{% include 'LabelSyntax.jinja' %}\n\nA *precondition* for a given game is a logical formula that, when it is true before the game starts, there exists a strategy for Angel to ensure that the *postcondition* holds after the game ends, regardless of how Demon plays.\n\n## Input\n\n1. The current subgame for which you were trying to propose preconditions.\n2. overall_game: The overall game in which the current subgame appears.\n3. Analysis of the game and the control strategy Angel is trying to execute that the chosen preconditions should support.\nThis is followed by a log of previous attempts at identifying preconditions for subgames and verifying whether they hold by stepping through the game and checking if the preconditions compose to ensure the postcondition is satisfied. Examine this history to figure out what just happened. Did you propose a bad ODE precondition? Did the precondition you proposed end up not being compatible with an earlier chosen loop invariant? Did you come up with a good invariant but it needs to be simplified for the proving to go through?\n4. The options you can choose for your next action.\n\n## Possible Actions\n\nThe preconditions that you proposed most recently didn't check out.\nEither it was not provably a precondition of the current subgame, or if part of a loop, your provided preconditions led to a precondition for the loop body that was not implied by the loop invariant.\n\nThe error could lie in the most recent condition, or earlier in the process where you may have made a choice previously that backed you into a corner for this subgame. Now you must decide till what point to backtrack.\n\nYou are given the original program, in which some points in the game are labeled as subgame_id.\n\nThe actions are of the form `backtrack-to:id`: backtrack to the subgame with the given id and propose a new precondition there. \n\nIn your reply, write `backtrack-to:id` where id is the id of the subgame you want to backtrack to. When backtracking, you can even choose the current subgame to retry. Loops are considered to occur \"later\" than their body, so if you backtrack to a subgame inside a loop, you won't be asked for a new loop invariant and the existing invariant will be used.\n\n## Output\n\nWrite a few lines of explanation, followed by a newline, and then a code block containing the action you choose. For example, a valid code block is:\n\n```\nbacktrack-to:some_id\n```\n\nI will now show you zero of more examples of how to respond, followed by the current case.\n",
+      "instance": "The current subgame is:\n{{ query.current_game }}\n\nThe overall game with labels is:\n{{ query.overall_game }}\n\nHere is an analysis of the game followed by logs of precondition computation and checking so far:\n{{ query.history }}\n\nThe options you can choose are:\n{{ query.backtrack_to }}",
+      "shared": "",
+      "title": "Get Next Action Control No Proving",
+      "description": "Published prompt template included for completeness.",
+      "category": "additional",
+      "pipeline": "reference",
+      "rawFiles": [
+        "GetNextActionControlNoProving.system.jinja",
+        "GetNextActionControlNoProving.instance.jinja"
+      ]
+    },
+    {
+      "id": "GetTactic",
+      "system": "You are trying to prove a differential game logic (dGL) theorem in KeYmaera X.\n\nYou must provide a Bellerophon tactic to complete the proof.\n\n## Background Information\n\nHere is some information about dGL.\n{% include 'DGlSyntax.jinja' %}\n\nHere is some information about Bellerophon, the tactic language in which you must output.\n{% include 'Bellerophon.jinja' %}\n\n## Output Instructions\n\n### Output Format\n\nIn your response, first briefly summarize you reasoning.\nThen write a newline.\nThen, in a code block, write the new Bellerophon tactic you want KeYmaera X to try.\n\n### Advice\n\nIf you are not sure what to how to complete the proof, you can provide some initial steps.\nKeYmaera X will run these and you can review the open branches to complete the proof in later steps.\nRemember to use the print tactic at the end of branches to find out what their state is for future reference.\n\nTactics can be sequentially combined using semicolons (e.g., `unfold; auto`. Note that there is no semicolon after the last tactic in a sequence).\nIf the proof branches, e.g., after dC, then use the combinator `<(,)`, e.g., `dC; <( print(\"this is branch one.\"); print(\"this is a second print still in branch one.\"), print(\"this is branch two.\") )`.\n\nCommon mistakes to avoid:\n- When expanding on a previous tactic script, do not forget the initial `unfold` tactic because this can lead to subsequent tactic failing. You should retain the entire previous tactic and expand on it, unless there is an error requiring you to backtrack.\n- Do not modify the old tactic any more than strictly necessary. Tactics can be fragile and a single misplaced andL can break the proof.\n- Tactics should almost always begin with unfold to normalize the formula first.\n- Do not try more than one or two proof steps at once without checking if the proof state is like you expect. Do not try to solve more than one branch at a time because the complexity can quickly become unmanageable.\n- Do not forget to print the state of branches after QE or auto to confirm that they are indeed closed.\n- No unicode. Only ascii characters are allowed.\n\nYou will next be shown 0 or more examples of how to answer such a prompt, which you can learn from, followed by the current question which you should answer.",
+      "instance": "The formula that you are trying to prove is:\n{{ query.formula }}\n\n{% if query.history %}\nThis is what you have been trying so far and the results. Pay careful attention to not repeat past mistakes and make progress based on what you have learned.\n    \n    {{ query.history }}\n{% endif %}\n\nNow, please provide a Bellerophon tactic to try next.\nYou should retain the entire previous tactic and expand on it, unless there is an error requiring you to backtrack.\nIn your response, first briefly summarize your reasoning.\nThen write a newline.\nThen, in a code block, write the entire Bellerophon tactic you want KeYmaera X to try.",
+      "shared": "",
+      "title": "Get Tactic",
+      "description": "Proposes a Bellerophon tactic, incorporating feedback from earlier proof attempts.",
+      "category": "primary",
+      "pipeline": "verification",
+      "rawFiles": [
+        "GetTactic.system.jinja",
+        "GetTactic.instance.jinja"
+      ]
+    },
+    {
+      "id": "GetTacticNoPatterns",
+      "system": "You are trying to prove a differential game logic (dGL) theorem in KeYmaera X.\n\nYou must provide a Bellerophon tactic to complete the proof.\n\n## Background Information\n\nHere is some information about dGL.\n{% include 'DGlSyntax.jinja' %}\n\nHere is some information about Bellerophon, the tactic language in which you must output.\n{% include 'BellerophonNoPatterns.jinja' %}\n\n## Output Instructions\n\n### Output Format\n\nIn your response, first briefly summarize you reasoning.\nThen write a newline.\nThen, in a code block, write the new Bellerophon tactic you want KeYmaera X to try.\n\n### Advice\n\nTactics can be sequentially combined using semicolons (e.g., `unfold; auto`. Note that there is no semicolon after the last tactic in a sequence).\nIf the proof branches, e.g., after dC, then use the combinator `<(,)`, e.g., `dC; <( print(\"this is branch one.\"); print(\"this is a second print still in branch one.\"), print(\"this is branch two.\") )`.\n\nCommon mistakes to avoid:\n- You should retain the entire previous tactic and expand on it, unless there is an error requiring you to backtrack.\n- Do not modify the old tactic any more than strictly necessary. Tactics can be fragile and a single misplaced andL can break the proof.\n- No unicode. Only ascii characters are allowed.\n\nYou will next be shown 0 or more examples of how to answer such a prompt, which you can learn from, followed by the current question which you should answer.",
+      "instance": "The formula that you are trying to prove is:\n{{ query.formula }}\n\n{% if query.history %}\nThis is what you have been trying so far and the results. Pay careful attention to not repeat past mistakes and make progress based on what you have learned.\n    \n    {{ query.history }}\n{% endif %}\n\nNow, please provide a Bellerophon tactic to try next.\nYou should retain the entire previous tactic and expand on it, unless there is an error requiring you to backtrack.\nIn your response, first briefly summarize your reasoning.\nThen write a newline.\nThen, in a code block, write the entire Bellerophon tactic you want KeYmaera X to try.",
+      "shared": "",
+      "title": "Get Tactic No Patterns",
+      "description": "Published prompt template included for completeness.",
+      "category": "additional",
+      "pipeline": "reference",
+      "rawFiles": [
+        "GetTacticNoPatterns.system.jinja",
+        "GetTacticNoPatterns.instance.jinja"
+      ]
+    },
+    {
+      "id": "GuessAsstPrecondition",
+      "system": "Your task is to guess the precondition of a nondeterministic assignment given the assignment specification and the postcondition.\n\nA nondeterministic assignment has the form \"x := *\" which assigns an arbitrary value to variable x.\n\nIn form \"x := *\", Angel gets to choose what value is assigned.\nThe weakest precondition for such an assignment with postcondition P is the formula that holds *for some* value that could be assigned to x.\n\nIn form \"{x := *;}^@\", any real number can be assigned, in Demon's control.\nThe weakest precondition for such an assignment with postcondition P is the formula that holds *for all* possible values that could be assigned to x.\n\nThis quantification often simplifies in practice:\n- If P doesn't depend on x, then the precondition is simply P\n- If P(x) must hold for all values of x, consider what constraints this imposes on other variables\n\nYou should provide a precondition that is logically sound according to the semantics of differential dynamic logic. The precondition should be the weakest condition under which executing the nondeterministic assignment will satisfy the postcondition.\n\nReturn your answer as a logical formula in KeYmaera X syntax:\n- Use & for logical AND\n- Use | for logical OR  \n- Use ! for logical NOT\n- Use = for equality\n- Use <, <=, >, >= for comparisons\n- Use parentheses for grouping\nUse only variables you see in the problem. For example, if the problem has `x`, use `x`, not `x(0)`.\n\nProvide up to 4 lines describing your reasoning. Then after a blank line, write a code block with the precondition in KeYmaera X syntax.\n\n{% include 'Instructions.jinja' %}\n",
+      "instance": "Nondeterministic assignment:\n{{ query.asst }}\n\nPostcondition: {{ query.postcondition }}\n\nWhat is the weakest precondition for this nondeterministic assignment?\n",
+      "shared": "",
+      "title": "Guess Asst Precondition",
+      "description": "Published prompt template included for completeness.",
+      "category": "additional",
+      "pipeline": "reference",
+      "rawFiles": [
+        "GuessAsstPrecondition.system.jinja",
+        "GuessAsstPrecondition.instance.jinja"
+      ]
+    },
+    {
+      "id": "GuessAsstPreconditionBacktracking",
+      "system": "Your task is to guess the precondition of a nondeterministic assignment given the assignment specification and the postcondition.\n\nA nondeterministic assignment has the form \"x := *\" which assigns an arbitrary value to variable x.\n\nIn form \"x := *\", we get to choose what value is assigned.\nThe weakest precondition for such an assignment with postcondition P is the formula that holds *for some* value that could be assigned to x.\n\nIn form \"{x := *;}^@\", any real number can be assigned, outside our control.\nThe weakest precondition for such an assignment with postcondition P is the formula that holds *for all* possible values that could be assigned to x.\n\nThis quantification often simplifies in practice:\n- If P doesn't depend on x, then the precondition is simply P\n- If P(x) must hold for all values of x, consider what constraints this imposes on other variables\n\nYou should provide a precondition that is logically sound according to the semantics of differential dynamic logic. The precondition should be the weakest condition under which executing the nondeterministic assignment will satisfy the postcondition.\n\nReturn your answer as a logical formula in KeYmaera X syntax:\n- Use & for logical AND\n- Use | for logical OR  \n- Use ! for logical NOT\n- Use = for equality\n- Use <, <=, >, >= for comparisons\n- Use parentheses for grouping\nUse only variables you see in the problem. For example, if the problem has `x`, use `x`, not `x(0)`.\n\nProvide up to 4 lines describing your reasoning. Then after a blank line, write a code block with the precondition in KeYmaera X syntax.\n\n{% include 'Instructions.jinja' %}\n",
+      "instance": "Nondeterministic assignment:\n{{ query.asst }}\n\nPostcondition: {{ query.postcondition }}\n\n{% if query.history %}\nHere is a log of what you have tried in the past in the process of precondition computation:\nHistory: {{ query.history }}\n\n{% endif %}\nWhat is the weakest precondition for this nondeterministic assignment?\n",
+      "shared": "",
+      "title": "Guess Asst Precondition Backtracking",
+      "description": "Published prompt template included for completeness.",
+      "category": "additional",
+      "pipeline": "reference",
+      "rawFiles": [
+        "GuessAsstPreconditionBacktracking.system.jinja",
+        "GuessAsstPreconditionBacktracking.instance.jinja"
+      ]
+    },
+    {
+      "id": "GuessAsstPreconditionControl",
+      "system": "Your task is to guess the precondition of a nondeterministic assignment given the assignment specification and the postcondition.\n\nThis is a step in the process of finding preconditions over an entire dGL game that contains the loop.\nYou should provide a precondition that is logically sound according to the semantics of differential dynamic logic.\nYou will be given the assignment, postcondition, and context such as the overall game in which the ODE appears and the strategy that Angel is trying to execute.\nYour job is to come up with a suitable precondition for the ODE in light of this information.\n\n## Background information\n\nHere is some information about dGL.\n\n{% include 'DGlSyntax.jinja' %}\n\nA *precondition* for a given game is a logical formula that, when it is true before the game starts, there exists a strategy for Angel to ensure that the *postcondition* holds after the game ends, regardless of how Demon plays.\nThe precondition of a nondeterministic assignment depends on whether Angel or Demon controls the assignment.\nConsider for example the nondeterministic assignment game `x:=*`.\n\nIf Angel controls it, she gets to choose any real number to assign to x.\nThe weakest precondition given postcondition P is __exists x such that P__, that is the postcondition holds *for some* possible value that could be assigned to x.\n\nIf Demon controls it, any real number can be assigned, outside our control.\nThe weakest precondition for such an assignment with postcondition P is __for all x, P__.\n\nThis quantification often simplifies in practice:\n- If P doesn't depend on x, then the precondition is simply P\n- If P(x) must hold for all values of x, consider what constraints this imposes on other variables.\n\nYou should provide a quantifier-free, modality-free precondition that is logically sound, in that it should guarantee the postcondition after the assignment.\nYou can take into account the strategy that Angel is trying to execute to make your job easier, since this may tell you already what values of x to try for Angel-controlled assignments, or what values of x Demon is likely to choose for Demon-controlled assignments.\n\n## Input\n\nYou will be given the following inputs:\n1. The nondeterministic assignment game.\n2. The postcondition that must hold after the assignment ends.\n3. The overall game in which this assignment appears, and an analysis of its control roles and modes. From this context, you should figure out whether you are dealing with an Angel or Demon controlled assignment, and whether there are limitations of the values of variables, or control modes that make your job easier.\n4. Optionally, a log of previous computations for identifying preconditions for the whole game. Ultimately, you are trying to find preconditions in the whole game and this is just a sub-problem. This history may include failed attempts at guessing the precondition of this very assignment and postcondition, in which case you should pay special attention to see what went wrong and avoid repeating mistakes.\n\n## Output\n\nReturn your answer as a logical formula in KeYmaera X syntax:\n- Use & for logical AND\n- Use | for logical OR  \n- Use ! for logical NOT\n- Use = for equality\n- Use <, <=, >, >= for comparisons\n- Use parentheses for grouping\nUse only variables you see in the problem. For example, if the problem has `x`, use `x`, not `x(0)`.\n\nProvide up to 4 lines describing your reasoning. Then after a blank line, write a code block with the precondition in KeYmaera X syntax.\n\n## Additional Advice\n\n{% include 'ReasoningTips.jinja' %}\n",
+      "instance": "The assignment game:\n{{ query.asst }}\n\nPostcondition:\n{{ query.postcondition }}\n\nOverall game in which this sub-problem arises:\n{{ query.overall }}\n\n{% if query.history %}\nHere is an analysis of the game and Angel's planned strategy, possibly followed by a log of what you have tried in the past in the process of precondition computation:\n\n{{ query.history }}\n\n{% endif %}\nWhat is the weakest precondition for this nondeterministic assignment?\n",
+      "shared": "",
+      "title": "Guess Asst Precondition Control",
+      "description": "Proposes a precondition for a nondeterministic assignment.",
+      "category": "primary",
+      "pipeline": "synthesis",
+      "rawFiles": [
+        "GuessAsstPreconditionControl.system.jinja",
+        "GuessAsstPreconditionControl.instance.jinja"
+      ]
+    },
+    {
+      "id": "GuessLoopInv",
+      "system": "Your task is to guess a loop invariant for a game loop given the loop body and the postcondition.\n\nA loop of the form {α}*^@ executes the body α zero or more times (and we must account for every possibility). A loop invariant I is a property that:\n1. Holds before the loop starts (precondition implies I)\n2. Is preserved by each iteration of the loop body (if I holds before α, then I holds after α)\n3. Combined with loop termination, implies the postcondition\n\nA loop of the form {α}* executes the body α zero or more times, and how many times is our choice.\nIn this case, the invariant should be such if we run the loop enough (finite) times, the postcondition will be satisfied.\n\nWhile choosing the precondition/invariant, you need to consider the essential properties that remain true throughout all possible iterations of the loop body, considering both angel and demon choices.\n\nThe loop invariant should be typically involves bounds, safety properties, or relationships between variables\n\nReturn your answer as a logical formula in KeYmaera X syntax:\n- Use & for logical AND\n- Use | for logical OR  \n- Use ! for logical NOT\n- Use = for equality\n- Use <, <=, >, >= for comparisons\n- Use parentheses for grouping\nUse only variables you see in the problem. For example, if the problem has `x`, use `x`, not `x(0)`.\n\nProvide up to 4 lines describing your reasoning. Then after a blank line, write a code block with the loop invariant in KeYmaera X syntax.\n\n{% include 'Instructions.jinja' %}\n",
+      "instance": "Loop body:\n{{ query.game }}\n\nPostcondition: {{ query.postcondition }}\n\nWhat is a suitable loop invariant for this loop?\n",
+      "shared": "",
+      "title": "Guess Loop Inv",
+      "description": "Published prompt template included for completeness.",
+      "category": "additional",
+      "pipeline": "reference",
+      "rawFiles": [
+        "GuessLoopInv.system.jinja",
+        "GuessLoopInv.instance.jinja"
+      ]
+    },
+    {
+      "id": "GuessLoopInvBacktracking",
+      "system": "Your task is to guess a loop invariant for a dGL (differential game logic) loop. \nYou will be given a game loop body, the larger context in which it appears, and the post condition that the loop invariant must establish.\nYou should strive to make the loop invariant as weak and permissive as possible while still being sure that it holds and establishes the postcondition.\nBut in the interest of tractability, you may provide a stronger, simpler invariant if necessary. Still, aim for the weakest invariant you feel confident about.\n\n## Background information\n\nHere is some information about dGL.\n\n{% include 'DGlSyntax.jinja' %}\n\nA *precondition* for a given game is a logical formula that, when it is true before the game starts, there exists a strategy for Angel to ensure that the *postcondition* holds after the game ends, regardless of how Demon plays.\nA loop invariant is a precondition for a loop.\nThe things we look for in a loop invariant are different for Angel and Demon loops.\n\nA Demon-controlled loop of the form {α}*^@ executes the body α zero or more times (and we must account for every possibility). A loop invariant I is a formula that:\n1. Is preserved by each iteration of the loop body (if I holds before α, then I holds after α)\n2. Implies the postcondition\n\nAn Angel-controlled loop of the form {α}* executes the body α zero or more times, and how many times is our choice.\nIn this case, the invariant should be a formula such that if it holds initially, there is a way for us to run the loop some (finite) number of times, and in the end the postcondition will be satisfied.\n\n## Input\n\nYou will be given the following inputs:\n1. Loop body.\n2. Postcondition that must hold after the loop ends.\n3. Overall game in which this loop appears (for context). You should from this context carefully account for nested duals and figure out whether you are dealing with an Angel or Demon loop, and reason accordingly.\n4. Optionally, a history of previous attempts at identifying the loop invariant and verifying whether it holds by stepping through the loop body and checking if the preconditions compose to ensure this loop invariant is correct. This history may include failed attempts, which may help you to avoid repeating mistakes.\n\n## Output\n\nReturn your answer as a (quantifier-and-modality-free) logical formula in KeYmaera X syntax:\n- Use & for logical AND\n- Use | for logical OR  \n- Use ! for logical NOT\n- Use = for equality\n- Use <, <=, >, >= for comparisons\n- Use parentheses for grouping\nUse only variables you see in the problem. For example, if the problem has `x`, use `x`, not `x(0)`.\n\nProvide up to 4 lines describing your reasoning. Then after a blank line, write a code block with the loop invariant in KeYmaera X syntax.\n\n## Additional Advice\n\n{% include 'ReasoningTips.jinja' %}\n\nFirst carefully determine whether the loop is Angel-controlled or Demon-controlled by analyzing the overall game context, especially looking for dual operators that may switch control.\n\nFor Demon loops, while choosing the precondition/invariant, you need to consider the essential properties that remain true throughout all possible iterations of the loop body, considering both Angel and Demon choices. You are essentially finding the \"controllable region\" for Angel where she can ensure a way to win. It is extremely important to ensure that the invariant is inductive, ensuring the win condition for any number of iterations of the loop body. Ask yourself: would this invariant still hold after 10 iterations, or 100 iterations?",
+      "instance": "Loop body:\n{{ query.body }}\n\nPostcondition:\n{{ query.postcondition }}\n\nOverall game in which this loop appears (for context): \n{{ query.overall }}\n\n{% if query.history %}\nHere is a log of things that you have already tried in the past.\nCarefully consider this information to avoid repeating mistakes.\n\n{{ query.history }}\n\n{% endif %}\n\nWhat is a suitable loop invariant for this loop?\n",
+      "shared": "",
+      "title": "Guess Loop Inv Backtracking",
+      "description": "Published prompt template included for completeness.",
+      "category": "additional",
+      "pipeline": "reference",
+      "rawFiles": [
+        "GuessLoopInvBacktracking.system.jinja",
+        "GuessLoopInvBacktracking.instance.jinja"
+      ]
+    },
+    {
+      "id": "GuessLoopInvControl",
+      "system": "Your task is to guess a loop invariant for a dGL (differential game logic) loop. \n\nThis is a step in the process of finding preconditions over an entire dGL game that contains the loop.\nYou will be given a game loop body, the required postcondition and some other information, including the strategy that Angel is planning to play, and possibly, previous attempts and why they didn't hold up after analysis of the loop body.\nYou need to propose a suitable loop invariant in light of this information.\n\n## Background information\n\nHere is some information about dGL.\n\n{% include 'DGlSyntax.jinja' %}\n\nA *precondition* for a given game is a logical formula that, when it is true before the game starts, there exists a strategy for Angel to ensure that the *postcondition* holds after the game ends, regardless of how Demon plays.\nA loop invariant is a precondition for a loop.\nThe things we look for in a loop invariant are different for Angel and Demon loops.\n\nA Demon-controlled loop of the form {α}*^@ executes the body α zero or more times (and we must account for every possibility). A loop invariant I is a formula that:\n1. Is preserved by each iteration of the loop body (if I holds before α, then I holds after α)\n2. Implies the postcondition\nNotice that unlike in program verification, you can add any extra assumptions you want to the invariant, so long as they are inductive (preserved over iterations).\n\nAn Angel-controlled loop of the form {α}* executes the body α zero or more times, and how many times is our choice.\nIn this case, the invariant should be a formula such that if it holds initially, there is a way for us to run the loop some (finite) number of times, and in the end the postcondition will be satisfied.\n\n## Input\n\nYou will be given the following inputs:\n1. Loop body.\n2. Postcondition that must hold after the loop ends.\n3. Overall game in which this loop appears (for context), and an analysis of its control roles and modes. You should from this context carefully and figure out whether you are dealing with an Angel or Demon loop, and reason accordingly. \n4. A plan describing the strategy Angel is trying to play, that your invariant should support.\nThe plan will first have some initial conditions/assumptions, and then a sequence of steps that Angel will take. You will likely need to include some of these initial conditions in your invariant.\nIn the steps Angel takes, she may switch modes while still playing the same loop. In this case, your invariant should allow both modes, usually by using a disjunction. In fact, if you see that Angel \"switches to\" a different mode in the plan, you can expect that you will have a disjunction between the modes in your invariant, unless the invariant of one mode implies the other.\nUsually, the conditions and invariants that define a mode will end up in the clause for that mode in your invariant.\n5. Optionally, a history of previous attempts at identifying the loop invariant and verifying whether it holds by stepping through the loop body and checking if the preconditions compose to ensure this loop invariant is correct.\nIn correct invariants and precondition computation for Demon loops, inductiveness demands that the invariant implies the precondition of the loop body, where the loop body is computed to be the conditions under which it is possible to play the postcondition to reach the invariant. If a previous invariant was proposed and failed to imply the loop body precondition that was computed for it, analyze to avoid repeating mistakes.\n\n## Output\n\nReturn your answer as a (quantifier-and-modality-free) logical formula in KeYmaera X syntax:\n- Use & for logical AND\n- Use | for logical OR  \n- Use ! for logical NOT\n- Use = for equality\n- Use <, <=, >, >= for comparisons\n- Use parentheses for grouping\nUse only variables you see in the problem. For example, if the problem has `x`, use `x`, not `x(0)`.\n\nProvide up to 4 lines describing your reasoning. Then after a blank line, write a code block with the loop invariant in KeYmaera X syntax.\n\n## Additional Advice\n\n{% include 'ReasoningTips.jinja' %}\n\nFirst carefully determine whether the loop is Angel-controlled or Demon-controlled by analyzing the overall game context, especially looking for dual operators that may switch control.\n\nFor Demon loops, while choosing the precondition/invariant, you need to consider the essential properties that remain true throughout all possible iterations of the loop body while playing the specified strategy. You are essentially finding the \"controllable region\" for Angel where she can play starting at some point in the strategy and win. It is extremely important to ensure that the invariant is inductive, ensuring the win condition for any number of iterations of the loop body. Ask yourself: would this invariant still hold after 10 iterations, and after 100 iterations?\n",
+      "instance": "Loop body:\n{{ query.body }}\n\nPostcondition:\n{{ query.postcondition }}\n\nOverall game in which this loop appears (for context): \n{{ query.overall }}\n\n{% if query.history %}\nHere is an analysis of the game, the strategy that Angel is trying to play, and a log of things that you have already tried in the past.\nCarefully consider this information.\n\n{{ query.history }}\n\n{% endif %}\n\nWhat is a suitable loop invariant for this loop?\n",
+      "shared": "",
+      "title": "Guess Loop Inv Control",
+      "description": "Proposes the loop subvalue used as an invariant.",
+      "category": "primary",
+      "pipeline": "synthesis",
+      "rawFiles": [
+        "GuessLoopInvControl.system.jinja",
+        "GuessLoopInvControl.instance.jinja"
+      ]
+    },
+    {
+      "id": "Instructions",
+      "system": "",
+      "instance": "",
+      "shared": "Some syntax instructions to keep in mind are:\n- Do not add comments to your code blocks, as this may cause parsing issues.\n\nSome information about dGL:\n\"@\" is the dual symbol that flips who controls the action between Angel and Demon.\n\nFor example:\nIn game \"x := *\", Angel gets to choose what value is assigned.\nThe weakest precondition for such an assignment with postcondition P is the formula that holds *for some* value that could be assigned to x.\n\nIn game \"{x := *;}^@\", any real number can be assigned, per Demon's decision.\nThe weakest precondition for such an assignment with postcondition P is the formula that holds *for all* possible values that could be assigned to x.\n\n{% raw %}\nIn game \"{{ x:= *;}^@}^@\" the control flips twice, so Angel gets to choose the assignment to x.\n{% endraw %}\n\n{% include 'ReasoningTips.jinja' %}",
+      "title": "Instructions",
+      "description": "Shared synthesis instructions.",
+      "category": "shared",
+      "pipeline": "reference",
+      "rawFiles": [
+        "Instructions.jinja"
+      ]
+    },
+    {
+      "id": "KyxFormulaSyntax",
+      "system": "",
+      "instance": "",
+      "shared": "Here is information about the syntax of logical formulas in KeYmaera X.\n- Use & for logical AND\n- Use | for logical OR  \n- Use ! for logical NOT\n- Use = for equality\n- Use <, <=, >, >= for comparisons\n- Use parentheses for grouping",
+      "title": "Kyx Formula Syntax",
+      "description": "KeYmaera X formula-syntax reference.",
+      "category": "shared",
+      "pipeline": "reference",
+      "rawFiles": [
+        "KyxFormulaSyntax.jinja"
+      ]
+    },
+    {
+      "id": "LabelSyntax",
+      "system": "",
+      "instance": "",
+      "shared": "Some subgames are labeled with unique identifiers with the following syntax:\n    <subgame_id>: <subgame>\n\nThese subgame ids will help make your answers more specific.",
+      "title": "Label Syntax",
+      "description": "Shared labeled-game syntax reference.",
+      "category": "shared",
+      "pipeline": "reference",
+      "rawFiles": [
+        "LabelSyntax.jinja"
+      ]
+    },
+    {
+      "id": "PlanControlStrategy",
+      "system": "You are given a differential game logic (dGL) loop and a desired postcondition that Angel (the controller) aims to maintain.\n\nYour task is to propose a succinct plan describing the Angel's control strategy to guarantee the postcondition.\nYou just need to find one control strategy that works, not necessarily the optimal or most general one. You may be provided guidelines about what kind of control solution to find. If so, the chose strategy should be in accordance with those guidelines.\n\nBackground on dGL:\n{% include 'DGlSyntax.jinja' %}\n{% include 'LabelSyntax.jinja' %}\n\nYou are given:\n- The full loop.\n- The postcondition that Angel aims to maintain.\n- A prior analysis of Angel vs. Demon controls and control modes.\n- Optionally, guidelines about what kind of control solution to find.\n\nGoal:\nProduce a strategy that maintains safety. If the control involves a Demon controlled loop, carefully account for infinite iterations.\n\nKeep the strategy simple and minimalist. Avoid unnecessarily long or involved control strategies.\n\nIt is OK if your strategy requires special initial conditions or assumptions to work,  such as starting at specific equilibrium point or assuming the sign of some constants. Just be clear about what these assumptions are.\n\nRequirements for the plan:\n- State any initial conditions/assumptions the plan relies on, and what control mode it starts in. You must choose exactly one control mode to start in so as to make subsequent analysis easier. If the control mode requires specific initial conditions, this should be part of your assumptions.\n- After this, list Angel's strategy as a sequence of steps, corresponding to control modes.\n    * Each step should start with an action word (e.g., \"Choose\", \"Set\", \"Switch to\"), possibly with a conditional clause (e.g., \"When X holds\"). End with a temporal indicator (e.g., \"repeatedly\", \"until Y\", \"forever\").\n    * Each step should focus on Angel's actions. Mention Demon only when necessary to motivate Angel's tactics, or when he forces a mode change.\n    * Expect to transition between modes mainly by using Angel's controllable actions and choices.\n    * Use clear English, no mathematical notation unless necessary for clarity. This will later be translated into formal constraints.\n    * Produce a numbered list of Angel's decisions.\n    * Be as concise as possible without superfluous words. Aim for no more than ~120 words.\n    * Avoid hedging or verbose meta-commentary; write only Angel's action steps.\n\nThe input includes the game and a prior analysis identifying Angel vs. Demon controls. Use that analysis to ensure that the plan accounts for any possible adversarial behavior.\n\n{% include 'ReasoningTips.jinja' %}\n\nOutput Structure:\n- Start with a one-line comment on what new region the strategy is trying to cover.\n- Then write section per the requirements listed above.\n    * Write a description of initial conditions/assumptions, and mode.\n    * Then proceed with the plan steps.\n\nYou will be shown zero or more examples of how to answer, followed by a new question to answer.",
+      "instance": "Full Game:\n{{ query.game }}\n\nPostcondition Angel aims to maintain after the loop:\n{{ query.postcondition }}\n\nPrior control analysis:\n{{ query.analysis }}\n\n{% if query.context %}\nMore information from previous proof attempts:\n{{ query.context }}\n{% endif %}\n\nProvide the control strategy now.",
+      "shared": "",
+      "title": "Plan Control Strategy",
+      "description": "Plans an Angel control strategy before backward subvalue computation.",
+      "category": "primary",
+      "pipeline": "synthesis",
+      "rawFiles": [
+        "PlanControlStrategy.system.jinja",
+        "PlanControlStrategy.instance.jinja"
+      ]
+    },
+    {
+      "id": "PlanInvariantExpansion",
+      "system": "You are given a differential game logic (dGL) loop and a desired postcondition that Angel (the controller) aims to maintain.\n\nAn inductive invariant has already been established, but we want to expand it to cover a larger set of conditions where Angel can maintain controllability.\nYour task is to propose a succinct plan describing the Angel's control strategy to remain safe under broadened initial conditions by expanding the loop invariant.\nWe will later use this plan to derive the broadened initial conditions.\n\nBackground on dGL:\n{% include 'DGlSyntax.jinja' %}\n{% include 'LabelSyntax.jinja' %}\n\nYou are given:\n- The full loop.\n- The postcondition that Angel aims to maintain.\n- A previously proven invariant.\n- A prior analysis of Angel vs. Demon controls and control modes.\n\nGoal:\nProduce a strategy that either:\n1. Safely reaches the already established invariant region (reach-avoid problem), or\n2. Establishes a different inductive strategy that keeps Angel safe forever if the existing invariant is insufficient.\n\nKeep the strategy simple and minimalist. Avoid unnecessarily long or involved control strategies.\n\nRequirements for the plan:\n- State whether your plan is in itself inductive ('self-inductive'), or aims to reach the existing invariant ('reach-expansion').\n- Then state any initial conditions/assumptions the plan relies on, and what control mode it starts in. You must choose exactly one control mode to start in so as to make subsequent analysis easier. If the control mode requires specific initial conditions, this should be part of your assumptions.\n- After this, list Angel's strategy as a sequence of steps, corresponding to control modes.\n    * Each step should start with an action word (e.g., \"Choose\", \"Set\", \"Switch to\"), possibly with a conditional clause (e.g., \"When X holds\"). End with a temporal indicator (e.g., \"repeatedly\", \"until Y\", \"forever\").\n    * Each step should focus on Angel's actions. Mention Demon only when necessary to motivate Angel's tactics, or when he forces a mode change.\n    * Expect to transition between modes mainly by using Angel's controllable actions and choices.\n    * Use clear English, no mathematical notation unless necessary for clarity. This will later be translated into formal constraints.\n    * Produce a numbered list of Angel's decisions.\n    * Be as concise as possible without superfluous words. Aim for no more than ~120 words.\n    * Avoid hedging or verbose meta-commentary; write only Angel's action steps.\n\nThe input includes the full loop and, when available, a prior analysis identifying Angel vs. Demon controls. Use that analysis to tailor the plan to likely adversarial behavior.\n\n{% include 'ReasoningTips.jinja' %}\n\nOutput Structure:\n- Start with a one-line comment on what new region the strategy is trying to cover.\n- Then write section per the requirements listed above.\n    * State what kind of plan it is (self-inductive vs reach-expansion).\n    * Write a description of initial conditions/assumptions, and mode.\n    * Then proceed with the plan steps.\n\nYou will be shown zero or more examples of how to answer, followed by a new question to answer.",
+      "instance": "Full Loop:\n{{ query.loop }}\n\nPostcondition Angel aims to maintain after the loop:\n{{ query.postcondition }}\n\nPrior control analysis:\n{{ query.analysis }}\n\nExisting proved invariant (current inductive precondition):\n{{ query.current_invariant }}\n\n{% if query.context %}\nMore information from previous proof attempts:\n{{ query.context }}\n{% endif %}\n\nProvide the invariant expansion plan now.",
+      "shared": "",
+      "title": "Plan Invariant Expansion",
+      "description": "Plans how to strengthen or expand a candidate invariant.",
+      "category": "primary",
+      "pipeline": "synthesis",
+      "rawFiles": [
+        "PlanInvariantExpansion.system.jinja",
+        "PlanInvariantExpansion.instance.jinja"
+      ]
+    },
+    {
+      "id": "ProcessPlan",
+      "system": "",
+      "instance": "",
+      "shared": "This is some guidance on how to use an Angel strategy to come up with the invariant of a Demon loop in dGL. Think along the following steps:\n\n## 0: Modes of the strategy.\n\nIf your strategy involves switching between different control modes, first identify what each of these modes are. Then think about what modes or groups of modes are:\n- self-inductive, i.e., if you start in that mode or group of modes, you can stay in that mode or group of modes indefinitely by following the strategy.\n- reaching, i.e., if you start outside that mode or group of modes, you can reach a safely inductive group of modes.\n\nThen, order these modes or group of modes such that the self-inductive modes are first, followed by the reaching modes, such that if a one mode/group reaches another, the reached mode/group appears earlier in the order.\n\nThen for each mode/group, follow steps 1-3 below to come up with the part of the invariant corresponding to that mode/group. Finally, combine all these parts using logical OR to get the final invariant.\n\n## 1: Semi-formal Initial Conditions\n\nCome up with semi-formal initial conditions under which the provided Angel strategy will work.\n\nThese are equations and inequalities that must hold for the strategy to succeed.\nYou can think about these in three steps:\n   * Inequalities/Equations:\n      - You may use variables in the original question and polynomials in terms of them, the comparison operates (<. <=, =, >=, >), logical operators `and`, `or` and `not`, and short English phrases to express bounds of variables, e.g., \"upper bound of x\", \"lower bound of y over one iteration\".\n      - You may introduce new intermediate variables if necessary to express a physically meaningful quantity if it appears in multiple places. Remember to describe any introduced variable in the next section. Also introduce equations/inequalities to define any used values/bounds of the variables. That is, if there is a reference to an upper bound of variable x, there should be an inequality of the form x < ... or x <= ... to define what the upper bound of x means, and analogously for lower bounds (>, >=) and direct reference (=). In the end, there should be a way to express all introduced variables or bounds of introduced variables in terms of the original variables by transitively following the equations/inequalities.\n      - Include when applicable, any initial conditions required to ensure that we start from the specified initial control mode.\n      - Include any relevant assumptions on constants.\n      - When relevant, you may provide a one-line explanation in parentheses on the newline after an inequality/equation to clarify its purpose.\n   * Introduced Variables:\n      - List any intermediate variables introduced, along with a short description, e.g., \"time_to_target = time taken by the agent to reach target position p\".\n   * Required Bounds:\n      - A list of bounds whose explicit mathematical expression is required to replace any English phrases in the inequalities from section 1.\n      - Each list item should specify:\n         * The side of the bound (Upper or Lower),\n         * The variable it applies to (could be an introduced variables from section 2),\n         * The type of bound:\n            - `per-iteration`: bounds a variable for a single loop iteration,\n            - `for-all-time`: (holds over arbitrarily many iterations / unbounded time), or\n            - `time-parameterized`: bound expressed as a function of time.\n         * Any dependencies on other bounds in the list. Ensure there are no circular dependencies.\n         * Any assumptions about the mode/Angel choices under which the bound holds.\n\n## 2: Bounds\n\nTaking forward the required bounds in section 3 of step 1, come up with mathematical expressions for each bound.\n- Some bound expressions may depend on others. Consider this dependency order while coming up with the expressions: think about a bound after you have already dealt with the bounds it depends on.\n- Come up with a SINGLE concise polynomial bound formula for each variable upper/lower bound.\n- Use ONLY polynomial expressions (no exp, log, sin, cos, transcendental functions). Allowed: + - * numeric constants, variable names.\nAdditionally for time-parameterized bounds, you may use the global time variable s if needed, and special \"initial value\" variable v0 for the variable v being bounded. The initial value variable represents the value of v right now and must use the suffix \"0\", e.g., x0 for variable x.\n- For time-parameterized bounds, express as polynomial in s (e.g., v <= v0 + a1*s + a2*s^2).\n- Maintain variable names exactly as given. Do not introduce new variables (except for global time s and initial value variables).\n- If previous feedback indicates an issue, correct it.\n- ONE formula only; if min/max needed, use inequality and logical operators.\n- If the bound is per-iteration, avoid time variable unless explicitly required.\n- If the bound is for-all-time, use inequalities valid for all s >= 0. s should not appear in the formula.\n\n## 3: Construct the Overall Formula\n\nPut together the informal constraints from step one and the expressions from step two to get a single mathematical loop invariant formula. Don't forget to include assumptions about constants and initial mode conditions from step one.\n- Formula must consist of polynomial inequalities/equations along with logical operators using the existing variable names; avoid transcendental functions and never use new introduced variables.\n- The formula expressing the new region from which Angel can stay safe by following the new strategy typically respects all the bounds and constraints surfaced during the analysis; you can incorporate them into a single invariant predicate by conjunction.\n\n## 4: Final advice.\n- Remember to take the disjunction of the safe initial conditions in step 3 of all relevant modes.\n- If previous feedback indicates an issue, correct it.\n- Your resulting formula should be inductive, i.e., if it holds before an iteration of the loop, then after following the Angel strategy through the loop body, it should still hold.",
+      "title": "Process Plan",
+      "description": "Shared instructions for processing a synthesis plan.",
+      "category": "shared",
+      "pipeline": "reference",
+      "rawFiles": [
+        "ProcessPlan.jinja"
+      ]
+    },
+    {
+      "id": "ReasoningTips",
+      "system": "",
+      "instance": "",
+      "shared": "- Carefully consider the differential equation. There can be coupling between variables that affects your reasoning. \n- Based on the dynamics, you may some times need to come up with upper/lower bounds of quantities and use that to derive sound preconditions. It's best to use simplistic, polynomial bounds so that they verify more easily.\n",
+      "title": "Reasoning Tips",
+      "description": "Shared reasoning advice and common failure modes.",
+      "category": "shared",
+      "pipeline": "reference",
+      "rawFiles": [
+        "ReasoningTips.jinja"
+      ]
+    },
+    {
+      "id": "Summarize",
+      "system": "You are given a step in an attempt to prove a differential game logic (dGL) formula in KeYmaera X, along with context about the previous state of the proof before the step, including the global plan and the things we have tried so far.\nYour task is to provide a new summary of the current state of the proof that now accounts for the latest step towards completing the proof and its outcome.\n\nYour proof summary will be used to then decide what the next step in the proof should be (if you decide to continue the proof) or how to change the formula (if you choose to revise the formula). Therefore it should remember all relevant information: previous mistakes and how you resolved them, location of sequents in subgoals that currently remain open, counterexamples discovered at the end of previous proof directions, etc. Expect that after many steps, the summary will be long. Be sure to include all relevant information.\n\n## Input:\n1. The dGL formula that you are trying to prove.\n2. The summary of the proof state before this step.\n3. The proof tactic that you then ran this time to get one step closer to completing the proof.\n4. The outcome of running that tactic.\n\nHere, \"step\" means not a literal single step in the proof, but rather a new tactic that you applied that modifies the last one that was applied, either resolving errors or making progress towards completing the proof.\n\n## More information:\n\nHere is more information about dGL:\n{% include 'DGlSyntax.jinja' %}\n\nHere is more information about KeYmaera X tactics:\n{% include 'Bellerophon.jinja' %}\n\n## Output Shape:\n\nYou should return a detailed summary of the proof state.\nIn the summary, you should include the following sections, many of which should carry over from the previous summary provided to you.\n\n1. The global proof plan so far. \n   Mostly carries over from previous summary unless the latest step surfaced an issue or new insight.\n2. (New) Previous Tactic (that is, the currently applied tactic in the latest step).\n   Just copies over from input item 3. Do not make any changes or omissions.\n3. The current open subgoals with exact sequent locations if we know them.\n   Copies over from input item 4.\n4. Any mistakes made so far and how we fixed them. This is important to avoid repeating the same mistakes in future steps. Guide the reader so they know what they must do to avoid repeating these mistakes.\n   Partly carries over from previous summary. Might need to add new information if the latest step surfaced a new mistake or insight on how to fix a mistake.\n   Remember to include all relevant context, such as the tactic leading up to the issue, the reason for the problem, and how to avoid it in the future.\n5. Previous proof directions that failed, if any, along with details such as the counterexamples discovered at the end of those directions.\n   Mostly carries over from previous summary unless the latest step surfaced a new issue or insight.\n6. Any other relevant information about the proof state that will let a reader work on the proof from here assuming no other information besides the original formula to prove is provided to them.\n   Partly carries over from previous summary. Might need to add new information if the latest step surfaced new relevant information. Remember that your summary and the original formula will be all the reader has to work from to proceed with the proof, so do not omit useful details.\nSome of these sections may be empty if the proof is still in early stages, but you should still include the section headers for completeness.",
+      "instance": "The formula that you are trying to prove is:\n{{ query.formula }}\n\n{% if query.formula_analysis %}\nRemember that nested duals alternate control back. For example, in the game `{(a ++ b)^@; (c++d);}^@`, the choice between `a` and `b` is controlled by Angel, while the choice between `c` and `d` is controlled by Demon.\n\nHere is an analysis of the formula, discussing what Angel vs. Demon controls and the game's control modes.\n{{ query.formula_analysis }}\n\nCarefully account for who controls which choice while constructing any counterexamples. The counterexample cannot, e.g., require Demon to make a choice that Angel controls.\n{% endif %}\n\n{% if query.plan %}\nThe proof state summary before the most recent attempt was:\n{{ query.plan }}\n{% endif %}\n\nThen you performed the following proof attempt:\n{{ query.step }}\n\nThe outcome was:\n{{ query.outcome }}\n\nNow please provide your summary.",
+      "shared": "",
+      "title": "Summarize",
+      "description": "Published prompt template included for completeness.",
+      "category": "additional",
+      "pipeline": "reference",
+      "rawFiles": [
+        "Summarize.system.jinja",
+        "Summarize.instance.jinja"
+      ]
+    },
+    {
+      "id": "SummarizeAndDecide",
+      "system": "You are given a step in an attempt to prove a differential game logic (dGL) formula in KeYmaera X, along with context about the previous state of the proof before the step, including the global plan and the things we have tried so far.\nYour task is to:\n1. provide a new summary of the current state of the proof that now accounts for the latest step towards completing the proof and its outcome.\n2. decide whether it makes sense to continue the proof attempt or to go back and revise the formula because it is not true or provable.\n\nYour proof summary will be used to then decide what the next step in the proof should be (if you decide to continue the proof) or how to change the formula (if you choose to revise the formula). Therefore it should remember all relevant information: previous mistakes and how you resolved them, location of sequents in subgoals that currently remain open, counterexamples discovered at the end of previous proof directions, etc. Expect that after many steps, the summary will be long. Be sure to include all relevant information.\n\n## Input:\n1. The dGL formula that you are trying to prove.\n2. The summary of the proof state before this step.\n3. The proof tactic that you then ran this time to get one step closer to completing the proof.\n4. The outcome of running that tactic.\n\nHere, \"step\" means not a literal single step in the proof, but rather a new tactic that you applied that modifies the last one that was applied, either resolving errors or making progress towards completing the proof.\n\n## More information:\n\nHere is more information about dGL:\n{% include 'DGlSyntax.jinja' %}\n\nHere is more information about KeYmaera X tactics:\n{% include 'Bellerophon.jinja' %}\n\n## Output Shape:\n\nYou should summarize your thoughts very briefly in two or three lines first in english, than have a newline, and finally write a codeblock with yaml like below:\n\n```\nsummary: \"Summary of proof state.\"\nescape: True\n```\n\nHere `summary` is a string that is the detailed summary of the proof state and `escape` is a boolean. When escape is true, we exit this proof attempt and go back to revise the formula. When escape is false, we continue the proof attempt.\n\nDo not attempt to escape unless you have a solid reason to believe the formula is false, with a proper counterexample and detailed documentation of how this counterexample was discovered and why it shows the formula is not valid. If the counterexample derives from an assumption or invariant made *during the proof*, such as because of a dC cut in the tactic, then do not escape. Rather, add that to the summary under failed proof directions and provide instructions to backtrack to before the bad cut. Only if the counterexample shows the original formula is not valid, then escape.\nIf you do decide to exit, speculate on how to fix the theorem in the summary, trying to be as specific as possible. For example, are there some minimal extra assumptions that you could add to make the theorem valid?\n\nIn the summary, you should include the following sections, many of which should carry over from the previous summary provided to you.\n\n1. The global proof plan so far. \n   Mostly carries over from previous summary unless the latest step surfaced an issue or new insight.\n2. (New) Previous Tactic (that is, the currently applied tactic in the latest step).\n   Just copies over from input item 3. Do not make any changes or omissions.\n3. The current open subgoals with exact sequent locations if we know them.\n   Copies over from input item 4.\n3. Any mistakes made so far and how we fixed them. This is important to avoid repeating the same mistakes in future steps. Guide the reader so they know what they must do to avoid repeating these mistakes.\n   Partly carries over from previous summary. Might need to add new information if the latest step surfaced a new mistake or insight on how to fix a mistake.\n   Remember to include all relevant context, such as the tactic leading up to the issue, the reason for the problem, and how to avoid it in the future.\n4. Previous proof directions that failed, if any, along with details such as the counterexamples discovered at the end of those directions.\n   Mostly carries over from previous summary unless the latest step surfaced a new issue or insight.\n5. Any other relevant information about the proof state that will let a reader work on the proof from here assuming no other information besides the original formula to prove is provided to them.\n   Partly carries over from previous summary. Might need to add new information if the latest step surfaced new relevant information. Remember that your summary and the original formula will be all the reader has to work from to proceed with the proof, so do not omit useful details.\nSome of these sections may be empty if the proof is still in early stages, but you should still include the section headers for completeness.",
+      "instance": "The formula that you are trying to prove is:\n{{ query.formula }}\n\n{% if query.formula_analysis %}\nRemember that nested duals alternate control back. For example, in the game `{(a ++ b)^@; (c++d);}^@`, the choice between `a` and `b` is controlled by Angel, while the choice between `c` and `d` is controlled by Demon.\n\nHere is an analysis of the formula, discussing what Angel vs. Demon controls and the game's control modes.\n{{ query.formula_analysis }}\n\nCarefully account for who controls which choice while constructing any counterexamples. The counterexample cannot, e.g., require Demon to make a choice that Angel controls.\n{% endif %}\n\n{% if query.plan %}\nThe proof state summary before the most recent attempt was:\n{{ query.plan }}\n{% endif %}\n\nThen you performed the following proof attempt:\n{{ query.step }}\n\nThe outcome was:\n{{ query.outcome }}\n\nNow please provide your summary and decision.\nPlease summarize your thoughts very briefly in two lines first, than have a newline, and finally write a codeblock with the yaml.",
+      "shared": "",
+      "title": "Summarize And Decide",
+      "description": "Condenses proof progress and decides whether to continue or return to synthesis.",
+      "category": "primary",
+      "pipeline": "verification",
+      "rawFiles": [
+        "SummarizeAndDecide.system.jinja",
+        "SummarizeAndDecide.instance.jinja"
+      ]
+    },
+    {
+      "id": "SummarizeNoPatterns",
+      "system": "You are given a step in an attempt to prove a differential game logic (dGL) formula in KeYmaera X, along with context about the previous state of the proof before the step, including the global plan and the things we have tried so far.\nYour task is to provide a new summary of the current state of the proof that now accounts for the latest step towards completing the proof and its outcome.\n\nYour proof summary will be used to then decide what the next step in the proof should be (if you decide to continue the proof) or how to change the formula (if you choose to revise the formula). Therefore it should remember all relevant information: previous mistakes and how you resolved them, location of sequents in subgoals that currently remain open, counterexamples discovered at the end of previous proof directions, etc. Expect that after many steps, the summary will be long. Be sure to include all relevant information.\n\n## Input:\n1. The dGL formula that you are trying to prove.\n2. The summary of the proof state before this step.\n3. The proof tactic that you then ran this time to get one step closer to completing the proof.\n4. The outcome of running that tactic.\n\nHere, \"step\" means not a literal single step in the proof, but rather a new tactic that you applied that modifies the last one that was applied, either resolving errors or making progress towards completing the proof.\n\n## More information:\n\nHere is more information about dGL:\n{% include 'DGlSyntax.jinja' %}\n\nHere is more information about KeYmaera X tactics:\n{% include 'BellerophonNoPatterns.jinja' %}\n\n## Output Shape:\n\nYou should return a detailed summary of the proof state.\nIn the summary, you should include the following sections, many of which should carry over from the previous summary provided to you.\n\n1. The global proof plan so far. \n   Mostly carries over from previous summary unless the latest step surfaced an issue or new insight.\n2. (New) Previous Tactic (that is, the currently applied tactic in the latest step).\n   Just copies over from input item 3. Do not make any changes or omissions.\n3. The current open subgoals with exact sequent locations if we know them.\n   Copies over from input item 4.\n3. Any mistakes made so far and how we fixed them. This is important to avoid repeating the same mistakes in future steps. Guide the reader so they know what they must do to avoid repeating these mistakes.\n   Partly carries over from previous summary. Might need to add new information if the latest step surfaced a new mistake or insight on how to fix a mistake.\n   Remember to include all relevant context, such as the tactic leading up to the issue, the reason for the problem, and how to avoid it in the future.\n4. Previous proof directions that failed, if any, along with details such as the counterexamples discovered at the end of those directions.\n   Mostly carries over from previous summary unless the latest step surfaced a new issue or insight.\n5. Any other relevant information about the proof state that will let a reader work on the proof from here assuming no other information besides the original formula to prove is provided to them.\n   Partly carries over from previous summary. Might need to add new information if the latest step surfaced new relevant information. Remember that your summary and the original formula will be all the reader has to work from to proceed with the proof, so do not omit useful details.\nSome of these sections may be empty if the proof is still in early stages, but you should still include the section headers for completeness.",
+      "instance": "The formula that you are trying to prove is:\n{{ query.formula }}\n\n{% if query.formula_analysis %}\nRemember that nested duals alternate control back. For example, in the game `{(a ++ b)^@; (c++d);}^@`, the choice between `a` and `b` is controlled by Angel, while the choice between `c` and `d` is controlled by Demon.\n\nHere is an analysis of the formula, discussing what Angel vs. Demon controls and the game's control modes.\n{{ query.formula_analysis }}\n\nCarefully account for who controls which choice while constructing any counterexamples. The counterexample cannot, e.g., require Demon to make a choice that Angel controls.\n{% endif %}\n\n{% if query.plan %}\nThe proof state summary before the most recent attempt was:\n{{ query.plan }}\n{% endif %}\n\nThen you performed the following proof attempt:\n{{ query.step }}\n\nThe outcome was:\n{{ query.outcome }}\n\nNow please provide your summary.",
+      "shared": "",
+      "title": "Summarize No Patterns",
+      "description": "Published prompt template included for completeness.",
+      "category": "additional",
+      "pipeline": "reference",
+      "rawFiles": [
+        "SummarizeNoPatterns.system.jinja",
+        "SummarizeNoPatterns.instance.jinja"
+      ]
+    }
+  ],
+  "cases": [
+    {
+      "id": "lotka",
+      "title": "Lotka–Volterra",
+      "domain": "Ecosystem control",
+      "summary": "Maintain predator and prey populations above safety thresholds under nonlinear population dynamics and adversarial control choices.",
+      "challenge": "Nonlinear dynamics, symbolic parameters, adversarial choices, and an unbounded time horizon.",
+      "verification": "Verified",
+      "synthesis": "Synthesized",
+      "source": "Adapted from an ARCH-COMP nonlinear-dynamics benchmark with discrete control and adversarial game play added.",
+      "program": "{\n    ? ( x>0 & y>0 & a>0 & b>0 & d>0 & g>0 & x>=xmin & y>=ymin );\n    {\n        { xadd := *; ? xadd >= 0; yadd := *; ? yadd >= 0; }^@;\n        x := x + xadd;\n        y := y + yadd;\n        {x' = a*x - b*x*y, y' = d*x*y - g*y};\n    }*\n}^@",
+      "postcondition": "(x >= xmin & y >= ymin)",
+      "guideline": "Set the system to its equilibrium point as soon as possible, and assume what you must so that the equilibrium point is good enough to maintain the post condition."
+    },
+    {
+      "id": "train",
+      "title": "Train",
+      "domain": "Rail safety",
+      "summary": "Keep a train within its movement authority under Davis resistance and time-dependent air-brake modes.",
+      "challenge": "Nested loops, multiple braking modes, nonlinear resistance, and timing constraints.",
+      "verification": "Verified",
+      "synthesis": "Synthesized",
+      "source": "Inspired by prior train air-brake verification, extended with rolling resistance and adversarial dynamics.",
+      "program": "{\n    ? ( a0>0& b0>0& a1<0  & a2<0 & T>0 & Apb<0& pressureChangeRate<0 & vel>=0& brakeSlope=0& airBrake=0);\n    { t:=0; \n        { \n            {trainAcc:=*;?(-b0<=trainAcc & trainAcc<a0);brakeSlope:=0;airBrake:=0; }\n             ++ \n            { trainAcc:=-b0; brakeSlope:=pressureChangeRate; }\n        }^@; \n        { \n            {trainPos'=vel, vel'=trainAcc + a1*vel + a2*vel^2 + airBrake, airBrake'=brakeSlope, t'=1 & t<=T & vel>=0 & airBrake>=Apb} ++ \n            {trainPos'=vel, vel'=trainAcc + a1*vel + a2*vel^2 + airBrake, airBrake'=0, t'=1 & t<=T & vel>=0 & airBrake<=Apb} \n        }*\n    }* \n}^@",
+      "postcondition": "end-trainPos > 0",
+      "guideline": "Find the control solution for when the train can stop by braking continuously, even conservatively ignoring rolling resistance and air brakes."
+    },
+    {
+      "id": "reaction",
+      "title": "Chemical Reaction",
+      "domain": "Reactor safety",
+      "summary": "Maintain a safe chemical-reaction state when the controller is not directly accessible and its actions must be treated adversarially.",
+      "challenge": "Nonlinear reaction dynamics and universal reasoning over controller actions.",
+      "verification": "Verified",
+      "synthesis": "Synthesized",
+      "source": "Based on a reactor setup from the hybrid-systems literature with an adversarial controller model.",
+      "program": "{\n    ? ( A>0 & B>0 & kA>0 & kB>0 & kC>0 & kT>=0 & T>0 );\n    {\n        { isOn:=0; ++ isOn:=1; }\n        t:=0;\n        {\n            A' = - A*B*Temp*isOn*kA,\n            B' = - A*B*Temp*isOn*kB,\n            C' = A*B*Temp*isOn*kC,\n            Temp' = A*B*Temp*isOn*kT,\n            t' = 1\n            & t<=T & A>=0 & B>=0 & C>=0 & Temp>=0\n        };\n    }*\n}^@",
+      "postcondition": "Temp<=Tmax",
+      "guideline": "Find the control solution for the situation where the reactant runs out before temperature can become too large."
+    },
+    {
+      "id": "coolant",
+      "title": "Coolant",
+      "domain": "Thermal control",
+      "summary": "Absorb enough generated heat before either a timer requirement or coolant discharge capacity is exceeded.",
+      "challenge": "A subtle outer loop invariant whose weakness is discovered only after expensive inner differential proofs.",
+      "verification": "Verified",
+      "synthesis": "Not synthesized",
+      "source": "A deliberately difficult control-envelope problem; its manual proof required several attempts over three days.",
+      "program": "{\n  ? T>0 & F>0 & minAbsorbed>0 & maxDischarge>0 & c1>0 & c2>0;\n  {\n    {\n      { ? absorbed>= minAbsorbed; f:=0; }\n      ++\n      { ? absorbed<minAbsorbed; f:=F; }\n    };\n    t:=0; {absorbed' = f*c1*tempDiff, discharged'=f, tempDiff' = -f*c2*tempDiff + generated, t'=1, timer'=-1 & t<=T}\n  }*\n}^@",
+      "postcondition": "discharged<=maxDischarge & (timer>=0 | absorbed>= minAbsorbed)",
+      "guideline": "Find the solution where initially enough heat has not been absorbed, but over time, enough is absorbed before the timer requirement or discharge capacity can be exceeded."
+    },
+    {
+      "id": "vanderpol",
+      "title": "Van der Pol",
+      "domain": "Oscillator safety",
+      "summary": "Reason symbolically about a nonlinear oscillator over an unbounded time horizon with adversarial game structure.",
+      "challenge": "Nonlinear oscillatory dynamics and unbounded-time reasoning.",
+      "verification": "Verified",
+      "synthesis": "Synthesized",
+      "source": "Adapted from an ARCH-COMP benchmark with adversarial dynamics and a proof-relevant loop structure added.",
+      "program": "x1:=*;\nx2:=*;\ny1:=*;\ny2:=*;\n{ ? m > 0 & b > 0; \n    { \n        { x1' = y1, y1' = m*(1-x1^2)*y1 + b*(x2-x1) - x1, x2' = y2, y2' = m*(1-x2^2)*y2 - b*(x2-x1) - x2, t' = 1 }\n    }* \n}^@",
+      "postcondition": "x1+x2<=xmax",
+      "guideline": "Keep the two oscillators in antiphase, maintaining the postcondition this way."
+    }
+  ],
+  "resultSets": [
+    {
+      "id": "table1_gpt54_mini_no_reasoning",
+      "rows": [
+        {
+          "bench_name": "reaction",
+          "model_name": "gpt-5.4-mini",
+          "run": "1.0",
+          "reasoning_effort": "none",
+          "success": "True",
+          "num_completions": "8",
+          "num_requests": "8",
+          "input_tokens": "113744",
+          "cached_input_tokens": "98304",
+          "output_tokens": "1369",
+          "price": "0.025113299999999998"
+        },
+        {
+          "bench_name": "reaction",
+          "model_name": "gpt-5.4-mini",
+          "run": "2.0",
+          "reasoning_effort": "none",
+          "success": "False",
+          "num_completions": "1202",
+          "num_requests": "1202",
+          "input_tokens": "62729077",
+          "cached_input_tokens": "61503744",
+          "output_tokens": "300160",
+          "price": "6.88250055"
+        },
+        {
+          "bench_name": "vanderpol",
+          "model_name": "gpt-5.4-mini",
+          "run": "",
+          "reasoning_effort": "none",
+          "success": "False",
+          "num_completions": "18",
+          "num_requests": "19",
+          "input_tokens": "0",
+          "cached_input_tokens": "0",
+          "output_tokens": "0",
+          "price": "0.0"
+        },
+        {
+          "bench_name": "vanderpol",
+          "model_name": "gpt-5.4-mini",
+          "run": "2.0",
+          "reasoning_effort": "none",
+          "success": "False",
+          "num_completions": "14",
+          "num_requests": "15",
+          "input_tokens": "0",
+          "cached_input_tokens": "0",
+          "output_tokens": "0",
+          "price": "0.0"
+        },
+        {
+          "bench_name": "coolant",
+          "model_name": "gpt-5.4-mini",
+          "run": "",
+          "reasoning_effort": "none",
+          "success": "False",
+          "num_completions": "977",
+          "num_requests": "977",
+          "input_tokens": "73651028",
+          "cached_input_tokens": "72051456",
+          "output_tokens": "300218",
+          "price": "7.954519200000006"
+        },
+        {
+          "bench_name": "coolant",
+          "model_name": "gpt-5.4-mini",
+          "run": "1.0",
+          "reasoning_effort": "none",
+          "success": "False",
+          "num_completions": "1619",
+          "num_requests": "1619",
+          "input_tokens": "67849302",
+          "cached_input_tokens": "66241792",
+          "output_tokens": "300143",
+          "price": "7.524410400000012"
+        },
+        {
+          "bench_name": "train",
+          "model_name": "gpt-5.4-mini",
+          "run": "",
+          "reasoning_effort": "none",
+          "success": "False",
+          "num_completions": "1582",
+          "num_requests": "1582",
+          "input_tokens": "114592589",
+          "cached_input_tokens": "112851456",
+          "output_tokens": "300060",
+          "price": "11.119978949999988"
+        },
+        {
+          "bench_name": "coolant",
+          "model_name": "gpt-5.4-mini",
+          "run": "2.0",
+          "reasoning_effort": "none",
+          "success": "False",
+          "num_completions": "1371",
+          "num_requests": "1371",
+          "input_tokens": "71938770",
+          "cached_input_tokens": "69523968",
+          "output_tokens": "300134",
+          "price": "8.376002099999994"
+        },
+        {
+          "bench_name": "train",
+          "model_name": "gpt-5.4-mini",
+          "run": "1.0",
+          "reasoning_effort": "none",
+          "success": "False",
+          "num_completions": "1351",
+          "num_requests": "1351",
+          "input_tokens": "136825289",
+          "cached_input_tokens": "134038272",
+          "output_tokens": "300040",
+          "price": "13.493313150000006"
+        },
+        {
+          "bench_name": "train",
+          "model_name": "gpt-5.4-mini",
+          "run": "2.0",
+          "reasoning_effort": "none",
+          "success": "False",
+          "num_completions": "1284",
+          "num_requests": "1284",
+          "input_tokens": "95911731",
+          "cached_input_tokens": "93762816",
+          "output_tokens": "300092",
+          "price": "9.994311450000001"
+        },
+        {
+          "bench_name": "lotka",
+          "model_name": "gpt-5.4-mini",
+          "run": "",
+          "reasoning_effort": "none",
+          "success": "False",
+          "num_completions": "1674",
+          "num_requests": "1674",
+          "input_tokens": "70419586",
+          "cached_input_tokens": "68421632",
+          "output_tokens": "300189",
+          "price": "7.9809384"
+        },
+        {
+          "bench_name": "lotka",
+          "model_name": "gpt-5.4-mini",
+          "run": "1.0",
+          "reasoning_effort": "none",
+          "success": "False",
+          "num_completions": "624",
+          "num_requests": "625",
+          "input_tokens": "0",
+          "cached_input_tokens": "0",
+          "output_tokens": "0",
+          "price": "0.0"
+        },
+        {
+          "bench_name": "lotka",
+          "model_name": "gpt-5.4-mini",
+          "run": "2.0",
+          "reasoning_effort": "none",
+          "success": "False",
+          "num_completions": "1655",
+          "num_requests": "1655",
+          "input_tokens": "72156587",
+          "cached_input_tokens": "70251008",
+          "output_tokens": "300020",
+          "price": "8.048099849999995"
+        },
+        {
+          "bench_name": "reaction",
+          "model_name": "gpt-5.4-mini",
+          "run": "",
+          "reasoning_effort": "none",
+          "success": "True",
+          "num_completions": "269",
+          "num_requests": "269",
+          "input_tokens": "19322945",
+          "cached_input_tokens": "18868224",
+          "output_tokens": "80084",
+          "price": "2.11653555"
+        },
+        {
+          "bench_name": "vanderpol",
+          "model_name": "gpt-5.4-mini",
+          "run": "1.0",
+          "reasoning_effort": "none",
+          "success": "False",
+          "num_completions": "1072",
+          "num_requests": "1072",
+          "input_tokens": "74733825",
+          "cached_input_tokens": "72921600",
+          "output_tokens": "300184",
+          "price": "8.179116749999999"
+        }
+      ]
+    },
+    {
+      "id": "table1_gpt54_mini_reasoning",
+      "rows": [
+        {
+          "bench_name": "coolant",
+          "model_name": "gpt-5.4-mini",
+          "reasoning_effort": "high",
+          "success": "False",
+          "num_completions": "22",
+          "num_requests": "22",
+          "input_tokens": "1363628",
+          "cached_input_tokens": "1212160",
+          "output_tokens": "302322",
+          "price": "1.564962",
+          "run": ""
+        },
+        {
+          "bench_name": "coolant",
+          "model_name": "gpt-5.4-mini",
+          "reasoning_effort": "high",
+          "success": "False",
+          "num_completions": "24",
+          "num_requests": "24",
+          "input_tokens": "1281989",
+          "cached_input_tokens": "1158144",
+          "output_tokens": "315679",
+          "price": "1.60030005",
+          "run": "1.0"
+        },
+        {
+          "bench_name": "coolant",
+          "model_name": "gpt-5.4-mini",
+          "reasoning_effort": "high",
+          "success": "False",
+          "num_completions": "24",
+          "num_requests": "24",
+          "input_tokens": "1654518",
+          "cached_input_tokens": "1485056",
+          "output_tokens": "304243",
+          "price": "1.6075692000000001",
+          "run": "2.0"
+        },
+        {
+          "bench_name": "train",
+          "model_name": "gpt-5.4-mini",
+          "reasoning_effort": "high",
+          "success": "False",
+          "num_completions": "28",
+          "num_requests": "28",
+          "input_tokens": "1358694",
+          "cached_input_tokens": "1257472",
+          "output_tokens": "301945",
+          "price": "1.5289793999999999",
+          "run": ""
+        },
+        {
+          "bench_name": "train",
+          "model_name": "gpt-5.4-mini",
+          "reasoning_effort": "high",
+          "success": "False",
+          "num_completions": "27",
+          "num_requests": "27",
+          "input_tokens": "1173364",
+          "cached_input_tokens": "1084672",
+          "output_tokens": "311035",
+          "price": "1.5475269000000007",
+          "run": "1.0"
+        },
+        {
+          "bench_name": "train",
+          "model_name": "gpt-5.4-mini",
+          "reasoning_effort": "high",
+          "success": "False",
+          "num_completions": "22",
+          "num_requests": "22",
+          "input_tokens": "757058",
+          "cached_input_tokens": "687616",
+          "output_tokens": "302704",
+          "price": "1.4658207000000005",
+          "run": "2.0"
+        },
+        {
+          "bench_name": "lotka",
+          "model_name": "gpt-5.4-mini",
+          "reasoning_effort": "high",
+          "success": "False",
+          "num_completions": "18",
+          "num_requests": "18",
+          "input_tokens": "424006",
+          "cached_input_tokens": "381440",
+          "output_tokens": "312489",
+          "price": "1.4667330000000003",
+          "run": ""
+        },
+        {
+          "bench_name": "lotka",
+          "model_name": "gpt-5.4-mini",
+          "reasoning_effort": "high",
+          "success": "False",
+          "num_completions": "21",
+          "num_requests": "21",
+          "input_tokens": "726389",
+          "cached_input_tokens": "646144",
+          "output_tokens": "308100",
+          "price": "1.4950945500000001",
+          "run": "1.0"
+        },
+        {
+          "bench_name": "lotka",
+          "model_name": "gpt-5.4-mini",
+          "reasoning_effort": "high",
+          "success": "False",
+          "num_completions": "20",
+          "num_requests": "20",
+          "input_tokens": "478271",
+          "cached_input_tokens": "406784",
+          "output_tokens": "310264",
+          "price": "1.48031205",
+          "run": "2.0"
+        },
+        {
+          "bench_name": "reaction",
+          "model_name": "gpt-5.4-mini",
+          "reasoning_effort": "high",
+          "success": "True",
+          "num_completions": "6",
+          "num_requests": "6",
+          "input_tokens": "90597",
+          "cached_input_tokens": "73216",
+          "output_tokens": "83959",
+          "price": "0.39634245",
+          "run": ""
+        },
+        {
+          "bench_name": "reaction",
+          "model_name": "gpt-5.4-mini",
+          "reasoning_effort": "high",
+          "success": "True",
+          "num_completions": "4",
+          "num_requests": "4",
+          "input_tokens": "51858",
+          "cached_input_tokens": "44032",
+          "output_tokens": "56866",
+          "price": "0.2650689",
+          "run": "1.0"
+        },
+        {
+          "bench_name": "reaction",
+          "model_name": "gpt-5.4-mini",
+          "reasoning_effort": "high",
+          "success": "False",
+          "num_completions": "22",
+          "num_requests": "22",
+          "input_tokens": "594635",
+          "cached_input_tokens": "539136",
+          "output_tokens": "308323",
+          "price": "1.46951295",
+          "run": "2.0"
+        },
+        {
+          "bench_name": "vanderpol",
+          "model_name": "gpt-5.4-mini",
+          "reasoning_effort": "high",
+          "success": "True",
+          "num_completions": "19",
+          "num_requests": "19",
+          "input_tokens": "423387",
+          "cached_input_tokens": "371200",
+          "output_tokens": "262785",
+          "price": "1.2495127499999998",
+          "run": ""
+        },
+        {
+          "bench_name": "vanderpol",
+          "model_name": "gpt-5.4-mini",
+          "reasoning_effort": "high",
+          "success": "True",
+          "num_completions": "13",
+          "num_requests": "13",
+          "input_tokens": "226752",
+          "cached_input_tokens": "189440",
+          "output_tokens": "169579",
+          "price": "0.8052974999999999",
+          "run": "1.0"
+        },
+        {
+          "bench_name": "vanderpol",
+          "model_name": "gpt-5.4-mini",
+          "reasoning_effort": "high",
+          "success": "True",
+          "num_completions": "13",
+          "num_requests": "13",
+          "input_tokens": "229378",
+          "cached_input_tokens": "203520",
+          "output_tokens": "167984",
+          "price": "0.7905854999999999",
+          "run": "2.0"
+        }
+      ]
+    },
+    {
+      "id": "table1_gpt54_reasoning",
+      "rows": [
+        {
+          "bench_name": "reaction",
+          "model_name": "gpt-5.4",
+          "reasoning_effort": "high",
+          "success": "True",
+          "num_completions": "3",
+          "num_requests": "3",
+          "input_tokens": "39070",
+          "cached_input_tokens": "22016",
+          "output_tokens": "20809",
+          "price": "0.5163414999999999",
+          "run": ""
+        },
+        {
+          "bench_name": "vanderpol",
+          "model_name": "gpt-5.4",
+          "reasoning_effort": "high",
+          "success": "False",
+          "num_completions": "30",
+          "num_requests": "30",
+          "input_tokens": "1463321",
+          "cached_input_tokens": "1357312",
+          "output_tokens": "304401",
+          "price": "7.453372999999999",
+          "run": ""
+        },
+        {
+          "bench_name": "coolant",
+          "model_name": "gpt-5.4",
+          "reasoning_effort": "high",
+          "success": "True",
+          "num_completions": "7",
+          "num_requests": "7",
+          "input_tokens": "132863",
+          "cached_input_tokens": "101888",
+          "output_tokens": "60588",
+          "price": "1.4661394999999997",
+          "run": ""
+        },
+        {
+          "bench_name": "coolant",
+          "model_name": "gpt-5.4",
+          "reasoning_effort": "high",
+          "success": "True",
+          "num_completions": "8",
+          "num_requests": "8",
+          "input_tokens": "238427",
+          "cached_input_tokens": "184320",
+          "output_tokens": "76566",
+          "price": "1.9040825",
+          "run": "1.0"
+        },
+        {
+          "bench_name": "coolant",
+          "model_name": "gpt-5.4",
+          "reasoning_effort": "high",
+          "success": "True",
+          "num_completions": "13",
+          "num_requests": "13",
+          "input_tokens": "388264",
+          "cached_input_tokens": "344832",
+          "output_tokens": "119575",
+          "price": "2.8852254999999998",
+          "run": "2.0"
+        },
+        {
+          "bench_name": "train",
+          "model_name": "gpt-5.4",
+          "reasoning_effort": "high",
+          "success": "True",
+          "num_completions": "5",
+          "num_requests": "5",
+          "input_tokens": "79149",
+          "cached_input_tokens": "61184",
+          "output_tokens": "40233",
+          "price": "0.9654509999999998",
+          "run": ""
+        },
+        {
+          "bench_name": "train",
+          "model_name": "gpt-5.4",
+          "reasoning_effort": "high",
+          "success": "True",
+          "num_completions": "12",
+          "num_requests": "12",
+          "input_tokens": "328812",
+          "cached_input_tokens": "286720",
+          "output_tokens": "87610",
+          "price": "2.148135",
+          "run": "1.0"
+        },
+        {
+          "bench_name": "train",
+          "model_name": "gpt-5.4",
+          "reasoning_effort": "high",
+          "success": "True",
+          "num_completions": "5",
+          "num_requests": "5",
+          "input_tokens": "86652",
+          "cached_input_tokens": "67328",
+          "output_tokens": "22005",
+          "price": "0.5602544999999999",
+          "run": "2.0"
+        },
+        {
+          "bench_name": "lotka",
+          "model_name": "gpt-5.4",
+          "reasoning_effort": "high",
+          "success": "True",
+          "num_completions": "21",
+          "num_requests": "21",
+          "input_tokens": "1126162",
+          "cached_input_tokens": "1021696",
+          "output_tokens": "253126",
+          "price": "6.211923999999999",
+          "run": ""
+        },
+        {
+          "bench_name": "lotka",
+          "model_name": "gpt-5.4",
+          "reasoning_effort": "high",
+          "success": "True",
+          "num_completions": "17",
+          "num_requests": "17",
+          "input_tokens": "485925",
+          "cached_input_tokens": "428800",
+          "output_tokens": "198595",
+          "price": "4.718399999999999",
+          "run": "1.0"
+        },
+        {
+          "bench_name": "lotka",
+          "model_name": "gpt-5.4",
+          "reasoning_effort": "high",
+          "success": "True",
+          "num_completions": "8",
+          "num_requests": "8",
+          "input_tokens": "148663",
+          "cached_input_tokens": "95744",
+          "output_tokens": "91674",
+          "price": "2.2188984999999994",
+          "run": "2.0"
+        },
+        {
+          "bench_name": "reaction",
+          "model_name": "gpt-5.4",
+          "reasoning_effort": "high",
+          "success": "True",
+          "num_completions": "4",
+          "num_requests": "4",
+          "input_tokens": "55885",
+          "cached_input_tokens": "45056",
+          "output_tokens": "26215",
+          "price": "0.628174",
+          "run": "1.0"
+        },
+        {
+          "bench_name": "reaction",
+          "model_name": "gpt-5.4",
+          "reasoning_effort": "high",
+          "success": "True",
+          "num_completions": "6",
+          "num_requests": "6",
+          "input_tokens": "122718",
+          "cached_input_tokens": "98816",
+          "output_tokens": "53154",
+          "price": "1.2804239999999998",
+          "run": "2.0"
+        },
+        {
+          "bench_name": "vanderpol",
+          "model_name": "gpt-5.4",
+          "reasoning_effort": "high",
+          "success": "True",
+          "num_completions": "14",
+          "num_requests": "14",
+          "input_tokens": "355489",
+          "cached_input_tokens": "310784",
+          "output_tokens": "134028",
+          "price": "3.205088499999999",
+          "run": "1.0"
+        },
+        {
+          "bench_name": "vanderpol",
+          "model_name": "gpt-5.4",
+          "reasoning_effort": "high",
+          "success": "True",
+          "num_completions": "8",
+          "num_requests": "8",
+          "input_tokens": "116696",
+          "cached_input_tokens": "100352",
+          "output_tokens": "98382",
+          "price": "2.279543",
+          "run": "2.0"
+        }
+      ]
+    },
+    {
+      "id": "table1_gpt55_no_reasoning",
+      "rows": [
+        {
+          "bench_name": "coolant",
+          "model_name": "gpt-5.5",
+          "reasoning_effort": "none",
+          "success": "False",
+          "num_completions": "455",
+          "num_requests": "455",
+          "input_tokens": "91893500",
+          "cached_input_tokens": "90014720",
+          "output_tokens": "300865",
+          "price": "63.42720999999997",
+          "run": ""
+        },
+        {
+          "bench_name": "train",
+          "model_name": "gpt-5.5",
+          "reasoning_effort": "none",
+          "success": "True",
+          "num_completions": "114",
+          "num_requests": "114",
+          "input_tokens": "21317268",
+          "cached_input_tokens": "20664576",
+          "output_tokens": "94687",
+          "price": "16.436357999999995",
+          "run": ""
+        },
+        {
+          "bench_name": "lotka",
+          "model_name": "gpt-5.5",
+          "reasoning_effort": "none",
+          "success": "False",
+          "num_completions": "325",
+          "num_requests": "325",
+          "input_tokens": "56834072",
+          "cached_input_tokens": "54987776",
+          "output_tokens": "300987",
+          "price": "45.75497799999999",
+          "run": ""
+        },
+        {
+          "bench_name": "reaction",
+          "model_name": "gpt-5.5",
+          "reasoning_effort": "none",
+          "success": "True",
+          "num_completions": "5",
+          "num_requests": "5",
+          "input_tokens": "78709",
+          "cached_input_tokens": "60160",
+          "output_tokens": "1725",
+          "price": "0.17457499999999998",
+          "run": ""
+        },
+        {
+          "bench_name": "vanderpol",
+          "model_name": "gpt-5.5",
+          "reasoning_effort": "none",
+          "success": "True",
+          "num_completions": "23",
+          "num_requests": "23",
+          "input_tokens": "954676",
+          "cached_input_tokens": "838144",
+          "output_tokens": "8023",
+          "price": "1.242422",
+          "run": ""
+        }
+      ]
+    },
+    {
+      "id": "table1_gpt55_reasoning",
+      "rows": [
+        {
+          "bench_name": "reaction",
+          "model_name": "gpt-5.5",
+          "reasoning_effort": "high",
+          "success": "True",
+          "num_completions": "4",
+          "num_requests": "4",
+          "input_tokens": "69388",
+          "cached_input_tokens": "28160",
+          "output_tokens": "33480",
+          "price": "1.2246199999999998",
+          "run": ""
+        },
+        {
+          "bench_name": "vanderpol",
+          "model_name": "gpt-5.5",
+          "reasoning_effort": "high",
+          "success": "True",
+          "num_completions": "5",
+          "num_requests": "5",
+          "input_tokens": "84672",
+          "cached_input_tokens": "44288",
+          "output_tokens": "44596",
+          "price": "1.561944",
+          "run": ""
+        },
+        {
+          "bench_name": "coolant",
+          "model_name": "gpt-5.5",
+          "reasoning_effort": "high",
+          "success": "True",
+          "num_completions": "6",
+          "num_requests": "6",
+          "input_tokens": "98360",
+          "cached_input_tokens": "82432",
+          "output_tokens": "49851",
+          "price": "1.6163859999999999",
+          "run": ""
+        },
+        {
+          "bench_name": "coolant",
+          "model_name": "gpt-5.5",
+          "reasoning_effort": "high",
+          "success": "True",
+          "num_completions": "6",
+          "num_requests": "6",
+          "input_tokens": "92190",
+          "cached_input_tokens": "78336",
+          "output_tokens": "55207",
+          "price": "1.764648",
+          "run": "1.0"
+        },
+        {
+          "bench_name": "coolant",
+          "model_name": "gpt-5.5",
+          "reasoning_effort": "high",
+          "success": "True",
+          "num_completions": "7",
+          "num_requests": "7",
+          "input_tokens": "143907",
+          "cached_input_tokens": "112896",
+          "output_tokens": "60180",
+          "price": "2.0169029999999997",
+          "run": "2.0"
+        },
+        {
+          "bench_name": "train",
+          "model_name": "gpt-5.5",
+          "reasoning_effort": "high",
+          "success": "True",
+          "num_completions": "4",
+          "num_requests": "4",
+          "input_tokens": "62431",
+          "cached_input_tokens": "48128",
+          "output_tokens": "42146",
+          "price": "1.359959",
+          "run": ""
+        },
+        {
+          "bench_name": "train",
+          "model_name": "gpt-5.5",
+          "reasoning_effort": "high",
+          "success": "True",
+          "num_completions": "3",
+          "num_requests": "3",
+          "input_tokens": "42690",
+          "cached_input_tokens": "33024",
+          "output_tokens": "30322",
+          "price": "0.974502",
+          "run": "1.0"
+        },
+        {
+          "bench_name": "train",
+          "model_name": "gpt-5.5",
+          "reasoning_effort": "high",
+          "success": "True",
+          "num_completions": "7",
+          "num_requests": "7",
+          "input_tokens": "190147",
+          "cached_input_tokens": "156928",
+          "output_tokens": "102744",
+          "price": "3.326879",
+          "run": "2.0"
+        },
+        {
+          "bench_name": "lotka",
+          "model_name": "gpt-5.5",
+          "reasoning_effort": "high",
+          "success": "True",
+          "num_completions": "3",
+          "num_requests": "3",
+          "input_tokens": "39473",
+          "cached_input_tokens": "29952",
+          "output_tokens": "33972",
+          "price": "1.0817409999999998",
+          "run": ""
+        },
+        {
+          "bench_name": "lotka",
+          "model_name": "gpt-5.5",
+          "reasoning_effort": "high",
+          "success": "True",
+          "num_completions": "23",
+          "num_requests": "23",
+          "input_tokens": "640657",
+          "cached_input_tokens": "530944",
+          "output_tokens": "278600",
+          "price": "9.172037",
+          "run": "1.0"
+        },
+        {
+          "bench_name": "lotka",
+          "model_name": "gpt-5.5",
+          "reasoning_effort": "high",
+          "success": "True",
+          "num_completions": "11",
+          "num_requests": "11",
+          "input_tokens": "229111",
+          "cached_input_tokens": "199936",
+          "output_tokens": "117962",
+          "price": "3.7847029999999995",
+          "run": "2.0"
+        },
+        {
+          "bench_name": "reaction",
+          "model_name": "gpt-5.5",
+          "reasoning_effort": "high",
+          "success": "True",
+          "num_completions": "2",
+          "num_requests": "2",
+          "input_tokens": "24293",
+          "cached_input_tokens": "17920",
+          "output_tokens": "24178",
+          "price": "0.766165",
+          "run": "1.0"
+        },
+        {
+          "bench_name": "reaction",
+          "model_name": "gpt-5.5",
+          "reasoning_effort": "high",
+          "success": "True",
+          "num_completions": "3",
+          "num_requests": "3",
+          "input_tokens": "40804",
+          "cached_input_tokens": "30976",
+          "output_tokens": "19980",
+          "price": "0.664028",
+          "run": "2.0"
+        },
+        {
+          "bench_name": "vanderpol",
+          "model_name": "gpt-5.5",
+          "reasoning_effort": "high",
+          "success": "True",
+          "num_completions": "3",
+          "num_requests": "3",
+          "input_tokens": "35805",
+          "cached_input_tokens": "19968",
+          "output_tokens": "24417",
+          "price": "0.821679",
+          "run": "1.0"
+        },
+        {
+          "bench_name": "vanderpol",
+          "model_name": "gpt-5.5",
+          "reasoning_effort": "high",
+          "success": "True",
+          "num_completions": "4",
+          "num_requests": "4",
+          "input_tokens": "46165",
+          "cached_input_tokens": "37888",
+          "output_tokens": "20030",
+          "price": "0.661229",
+          "run": "2.0"
+        }
+      ]
+    },
+    {
+      "id": "table1_qwen35_reasoning",
+      "rows": [
+        {
+          "bench_name": "coolant",
+          "model_name": "Qwen/Qwen3.5-35B-A3B",
+          "success": "False",
+          "num_completions": "127",
+          "num_requests": "127",
+          "input_tokens": "1647548",
+          "cached_input_tokens": "0",
+          "output_tokens": "300343",
+          "price": "0.25485769999999985",
+          "run": ""
+        },
+        {
+          "bench_name": "coolant",
+          "model_name": "Qwen/Qwen3.5-35B-A3B",
+          "success": "False",
+          "num_completions": "147",
+          "num_requests": "147",
+          "input_tokens": "2071913",
+          "cached_input_tokens": "0",
+          "output_tokens": "300309",
+          "price": "0.29728400000000005",
+          "run": "1.0"
+        },
+        {
+          "bench_name": "coolant",
+          "model_name": "Qwen/Qwen3.5-35B-A3B",
+          "success": "False",
+          "num_completions": "117",
+          "num_requests": "117",
+          "input_tokens": "1638189",
+          "cached_input_tokens": "0",
+          "output_tokens": "301454",
+          "price": "0.2542550999999999",
+          "run": "2.0"
+        },
+        {
+          "bench_name": "train",
+          "model_name": "Qwen/Qwen3.5-35B-A3B",
+          "success": "False",
+          "num_completions": "136",
+          "num_requests": "136",
+          "input_tokens": "1745095",
+          "cached_input_tokens": "0",
+          "output_tokens": "300027",
+          "price": "0.2645176",
+          "run": ""
+        },
+        {
+          "bench_name": "train",
+          "model_name": "Qwen/Qwen3.5-35B-A3B",
+          "success": "False",
+          "num_completions": "122",
+          "num_requests": "122",
+          "input_tokens": "1591310",
+          "cached_input_tokens": "0",
+          "output_tokens": "301896",
+          "price": "0.24969979999999997",
+          "run": "1.0"
+        },
+        {
+          "bench_name": "train",
+          "model_name": "Qwen/Qwen3.5-35B-A3B",
+          "success": "False",
+          "num_completions": "122",
+          "num_requests": "122",
+          "input_tokens": "1722161",
+          "cached_input_tokens": "0",
+          "output_tokens": "302141",
+          "price": "0.2628583999999999",
+          "run": "2.0"
+        },
+        {
+          "bench_name": "lotka",
+          "model_name": "Qwen/Qwen3.5-35B-A3B",
+          "success": "False",
+          "num_completions": "168",
+          "num_requests": "168",
+          "input_tokens": "2159236",
+          "cached_input_tokens": "0",
+          "output_tokens": "300663",
+          "price": "0.30612250000000013",
+          "run": ""
+        },
+        {
+          "bench_name": "lotka",
+          "model_name": "Qwen/Qwen3.5-35B-A3B",
+          "success": "False",
+          "num_completions": "163",
+          "num_requests": "163",
+          "input_tokens": "2089348",
+          "cached_input_tokens": "0",
+          "output_tokens": "309365",
+          "price": "0.30174429999999997",
+          "run": "1.0"
+        },
+        {
+          "bench_name": "lotka",
+          "model_name": "Qwen/Qwen3.5-35B-A3B",
+          "success": "False",
+          "num_completions": "143",
+          "num_requests": "143",
+          "input_tokens": "1837720",
+          "cached_input_tokens": "0",
+          "output_tokens": "301843",
+          "price": "0.2743248999999999",
+          "run": "2.0"
+        },
+        {
+          "bench_name": "reaction",
+          "model_name": "Qwen/Qwen3.5-35B-A3B",
+          "success": "True",
+          "num_completions": "106",
+          "num_requests": "106",
+          "input_tokens": "1416374",
+          "cached_input_tokens": "0",
+          "output_tokens": "271535",
+          "price": "0.22309790000000002",
+          "run": ""
+        },
+        {
+          "bench_name": "reaction",
+          "model_name": "Qwen/Qwen3.5-35B-A3B",
+          "success": "True",
+          "num_completions": "70",
+          "num_requests": "70",
+          "input_tokens": "959118",
+          "cached_input_tokens": "0",
+          "output_tokens": "236962",
+          "price": "0.16700040000000005",
+          "run": "1.0"
+        },
+        {
+          "bench_name": "reaction",
+          "model_name": "Qwen/Qwen3.5-35B-A3B",
+          "success": "False",
+          "num_completions": "126",
+          "num_requests": "126",
+          "input_tokens": "1743804",
+          "cached_input_tokens": "0",
+          "output_tokens": "300582",
+          "price": "0.26455500000000004",
+          "run": "2.0"
+        },
+        {
+          "bench_name": "vanderpol",
+          "model_name": "Qwen/Qwen3.5-35B-A3B",
+          "success": "False",
+          "num_completions": "162",
+          "num_requests": "162",
+          "input_tokens": "2079537",
+          "cached_input_tokens": "0",
+          "output_tokens": "300297",
+          "price": "0.2980428000000002",
+          "run": ""
+        },
+        {
+          "bench_name": "vanderpol",
+          "model_name": "Qwen/Qwen3.5-35B-A3B",
+          "success": "False",
+          "num_completions": "171",
+          "num_requests": "171",
+          "input_tokens": "2233455",
+          "cached_input_tokens": "0",
+          "output_tokens": "302082",
+          "price": "0.31397010000000003",
+          "run": "1.0"
+        },
+        {
+          "bench_name": "vanderpol",
+          "model_name": "Qwen/Qwen3.5-35B-A3B",
+          "success": "False",
+          "num_completions": "199",
+          "num_requests": "199",
+          "input_tokens": "2420306",
+          "cached_input_tokens": "0",
+          "output_tokens": "300194",
+          "price": "0.3320888",
+          "run": "2.0"
+        }
+      ]
+    },
+    {
+      "id": "table3_ablation",
+      "rows": [
+        {
+          "bench_name": "coolant",
+          "model_name": "gpt-5",
+          "output_token_budget": "900000.0",
+          "success": "False",
+          "num_completions": "106",
+          "num_requests": "106",
+          "input_tokens": "369452",
+          "cached_input_tokens": "269056",
+          "output_tokens": "1022862",
+          "price": "10.387747"
+        },
+        {
+          "bench_name": "reaction",
+          "model_name": "gpt-5",
+          "output_token_budget": "900000.0",
+          "success": "True",
+          "num_completions": "17",
+          "num_requests": "17",
+          "input_tokens": "51637",
+          "cached_input_tokens": "28928",
+          "output_tokens": "82582",
+          "price": "0.85782225"
+        },
+        {
+          "bench_name": "vanderpol",
+          "model_name": "gpt-5",
+          "output_token_budget": "900000.0",
+          "success": "True",
+          "num_completions": "22",
+          "num_requests": "22",
+          "input_tokens": "68205",
+          "cached_input_tokens": "30336",
+          "output_tokens": "69010",
+          "price": "0.74122825"
+        },
+        {
+          "bench_name": "lotka",
+          "model_name": "gpt-5",
+          "output_token_budget": "900000.0",
+          "success": "False",
+          "num_completions": "263",
+          "num_requests": "263",
+          "input_tokens": "832763",
+          "cached_input_tokens": "688640",
+          "output_tokens": "987281",
+          "price": "10.139043750000003"
+        },
+        {
+          "bench_name": "train",
+          "model_name": "gpt-5",
+          "output_token_budget": "900000.0",
+          "success": "False",
+          "num_completions": "149",
+          "num_requests": "149",
+          "input_tokens": "655822",
+          "cached_input_tokens": "527744",
+          "output_tokens": "1005197",
+          "price": "10.278035500000003"
+        }
+      ]
+    },
+    {
+      "id": "table3_full_pipeline",
+      "rows": [
+        {
+          "bench_name": "coolant",
+          "model_name": "gpt-5",
+          "output_token_budget": "900000.0",
+          "success": "False",
+          "num_completions": "119",
+          "num_requests": "119",
+          "input_tokens": "1426566",
+          "cached_input_tokens": "869888",
+          "output_tokens": "957127",
+          "price": "10.3758535",
+          "run": ""
+        },
+        {
+          "bench_name": "reaction",
+          "model_name": "gpt-5",
+          "output_token_budget": "900000.0",
+          "success": "True",
+          "num_completions": "16",
+          "num_requests": "16",
+          "input_tokens": "46597",
+          "cached_input_tokens": "18944",
+          "output_tokens": "71276",
+          "price": "0.7496942499999999",
+          "run": ""
+        },
+        {
+          "bench_name": "vanderpol",
+          "model_name": "gpt-5",
+          "output_token_budget": "900000.0",
+          "success": "True",
+          "num_completions": "26",
+          "num_requests": "26",
+          "input_tokens": "82881",
+          "cached_input_tokens": "39680",
+          "output_tokens": "68847",
+          "price": "0.7474312499999998",
+          "run": ""
+        },
+        {
+          "bench_name": "lotka",
+          "model_name": "gpt-5",
+          "output_token_budget": "900000.0",
+          "success": "True",
+          "num_completions": "58",
+          "num_requests": "58",
+          "input_tokens": "325929",
+          "cached_input_tokens": "166656",
+          "output_tokens": "254677",
+          "price": "2.7666932500000003",
+          "run": ""
+        },
+        {
+          "bench_name": "train",
+          "model_name": "gpt-5",
+          "output_token_budget": "900000.0",
+          "success": "True",
+          "num_completions": "89",
+          "num_requests": "89",
+          "input_tokens": "641378",
+          "cached_input_tokens": "319616",
+          "output_tokens": "503018",
+          "price": "5.4723345000000005",
+          "run": ""
+        },
+        {
+          "bench_name": "coolant",
+          "model_name": "gpt-5",
+          "output_token_budget": "900000.0",
+          "success": "False",
+          "num_completions": "115",
+          "num_requests": "115",
+          "input_tokens": "1072645",
+          "cached_input_tokens": "467712",
+          "output_tokens": "952389",
+          "price": "10.338520249999998",
+          "run": "1.0"
+        },
+        {
+          "bench_name": "reaction",
+          "model_name": "gpt-5",
+          "output_token_budget": "900000.0",
+          "success": "True",
+          "num_completions": "16",
+          "num_requests": "16",
+          "input_tokens": "51313",
+          "cached_input_tokens": "27392",
+          "output_tokens": "71576",
+          "price": "0.7490852499999999",
+          "run": "1.0"
+        },
+        {
+          "bench_name": "vanderpol",
+          "model_name": "gpt-5",
+          "output_token_budget": "900000.0",
+          "success": "True",
+          "num_completions": "27",
+          "num_requests": "27",
+          "input_tokens": "91918",
+          "cached_input_tokens": "36352",
+          "output_tokens": "68307",
+          "price": "0.7570714999999997",
+          "run": "1.0"
+        },
+        {
+          "bench_name": "lotka",
+          "model_name": "gpt-5",
+          "output_token_budget": "900000.0",
+          "success": "True",
+          "num_completions": "23",
+          "num_requests": "23",
+          "input_tokens": "75391",
+          "cached_input_tokens": "43904",
+          "output_tokens": "98726",
+          "price": "1.03210675",
+          "run": "1.0"
+        },
+        {
+          "bench_name": "train",
+          "model_name": "gpt-5",
+          "output_token_budget": "900000.0",
+          "success": "True",
+          "num_completions": "73",
+          "num_requests": "73",
+          "input_tokens": "533325",
+          "cached_input_tokens": "278144",
+          "output_tokens": "486910",
+          "price": "5.2228442500000005",
+          "run": "1.0"
+        }
+      ]
+    }
+  ],
+  "traces": [
+    {
+      "title": "Coolant verification",
+      "type": "Verification",
+      "outcome": "Proof found",
+      "model": "GPT-5.5, high reasoning",
+      "metrics": "6 requests · 55,207 output tokens · $1.76",
+      "steps": [
+        "Analyze the hybrid game and identify the controller branches.",
+        "Propose the full precondition as the main loop invariant.",
+        "Discharge the easy f = 0 branch with differential cuts.",
+        "Use KeYmaera X feedback to repair branch structure and strengthen differential arguments.",
+        "Close the remaining f = F branch and replay the complete checked tactic."
+      ],
+      "excerpt": "unfold;\\nloop(\\\"discharged<=maxDischarge & (absorbed>=minAbsorbed | ...)\\\", 1); <(\\n  QE(\\\"Z3\\\"),\\n  QE(\\\"Z3\\\"),\\n  unfold; <(\\n    dC(\\\"absorbed>=minAbsorbed\\\", 1); <( ... )\\n  )\\n)"
+    },
+    {
+      "title": "Lotka–Volterra synthesis",
+      "type": "Synthesis",
+      "outcome": "Control envelope synthesized",
+      "model": "GPT-5",
+      "metrics": "Full pipeline · formally checked subvalue map",
+      "steps": [
+        "Analyze Angel and Demon choices in the game loop.",
+        "Work backward from the population-safety postcondition.",
+        "Propose loop and ODE subvalues for the nonlinear dynamics.",
+        "Invoke interactive proving where automatic subvalue checks fail.",
+        "Backtrack to repair candidates, then return the verified control envelope."
+      ],
+      "excerpt": "The trace alternates backward subvalue computation with proof checks. Each proposed invariant or differential precondition is accepted only after KeYmaera X or Z3 validates its proof obligation."
+    }
+  ],
+  "generatedFrom": "Artifact version 1, DOI 10.1184/R1/32248389.v1"
+}

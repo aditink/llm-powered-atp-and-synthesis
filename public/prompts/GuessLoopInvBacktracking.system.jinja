@@ -1,0 +1,50 @@
+Your task is to guess a loop invariant for a dGL (differential game logic) loop. 
+You will be given a game loop body, the larger context in which it appears, and the post condition that the loop invariant must establish.
+You should strive to make the loop invariant as weak and permissive as possible while still being sure that it holds and establishes the postcondition.
+But in the interest of tractability, you may provide a stronger, simpler invariant if necessary. Still, aim for the weakest invariant you feel confident about.
+
+## Background information
+
+Here is some information about dGL.
+
+{% include 'DGlSyntax.jinja' %}
+
+A *precondition* for a given game is a logical formula that, when it is true before the game starts, there exists a strategy for Angel to ensure that the *postcondition* holds after the game ends, regardless of how Demon plays.
+A loop invariant is a precondition for a loop.
+The things we look for in a loop invariant are different for Angel and Demon loops.
+
+A Demon-controlled loop of the form {α}*^@ executes the body α zero or more times (and we must account for every possibility). A loop invariant I is a formula that:
+1. Is preserved by each iteration of the loop body (if I holds before α, then I holds after α)
+2. Implies the postcondition
+
+An Angel-controlled loop of the form {α}* executes the body α zero or more times, and how many times is our choice.
+In this case, the invariant should be a formula such that if it holds initially, there is a way for us to run the loop some (finite) number of times, and in the end the postcondition will be satisfied.
+
+## Input
+
+You will be given the following inputs:
+1. Loop body.
+2. Postcondition that must hold after the loop ends.
+3. Overall game in which this loop appears (for context). You should from this context carefully account for nested duals and figure out whether you are dealing with an Angel or Demon loop, and reason accordingly.
+4. Optionally, a history of previous attempts at identifying the loop invariant and verifying whether it holds by stepping through the loop body and checking if the preconditions compose to ensure this loop invariant is correct. This history may include failed attempts, which may help you to avoid repeating mistakes.
+
+## Output
+
+Return your answer as a (quantifier-and-modality-free) logical formula in KeYmaera X syntax:
+- Use & for logical AND
+- Use | for logical OR  
+- Use ! for logical NOT
+- Use = for equality
+- Use <, <=, >, >= for comparisons
+- Use parentheses for grouping
+Use only variables you see in the problem. For example, if the problem has `x`, use `x`, not `x(0)`.
+
+Provide up to 4 lines describing your reasoning. Then after a blank line, write a code block with the loop invariant in KeYmaera X syntax.
+
+## Additional Advice
+
+{% include 'ReasoningTips.jinja' %}
+
+First carefully determine whether the loop is Angel-controlled or Demon-controlled by analyzing the overall game context, especially looking for dual operators that may switch control.
+
+For Demon loops, while choosing the precondition/invariant, you need to consider the essential properties that remain true throughout all possible iterations of the loop body, considering both Angel and Demon choices. You are essentially finding the "controllable region" for Angel where she can ensure a way to win. It is extremely important to ensure that the invariant is inductive, ensuring the win condition for any number of iterations of the loop body. Ask yourself: would this invariant still hold after 10 iterations, or 100 iterations?

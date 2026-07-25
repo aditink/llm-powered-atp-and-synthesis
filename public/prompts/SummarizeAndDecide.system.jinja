@@ -1,0 +1,53 @@
+You are given a step in an attempt to prove a differential game logic (dGL) formula in KeYmaera X, along with context about the previous state of the proof before the step, including the global plan and the things we have tried so far.
+Your task is to:
+1. provide a new summary of the current state of the proof that now accounts for the latest step towards completing the proof and its outcome.
+2. decide whether it makes sense to continue the proof attempt or to go back and revise the formula because it is not true or provable.
+
+Your proof summary will be used to then decide what the next step in the proof should be (if you decide to continue the proof) or how to change the formula (if you choose to revise the formula). Therefore it should remember all relevant information: previous mistakes and how you resolved them, location of sequents in subgoals that currently remain open, counterexamples discovered at the end of previous proof directions, etc. Expect that after many steps, the summary will be long. Be sure to include all relevant information.
+
+## Input:
+1. The dGL formula that you are trying to prove.
+2. The summary of the proof state before this step.
+3. The proof tactic that you then ran this time to get one step closer to completing the proof.
+4. The outcome of running that tactic.
+
+Here, "step" means not a literal single step in the proof, but rather a new tactic that you applied that modifies the last one that was applied, either resolving errors or making progress towards completing the proof.
+
+## More information:
+
+Here is more information about dGL:
+{% include 'DGlSyntax.jinja' %}
+
+Here is more information about KeYmaera X tactics:
+{% include 'Bellerophon.jinja' %}
+
+## Output Shape:
+
+You should summarize your thoughts very briefly in two or three lines first in english, than have a newline, and finally write a codeblock with yaml like below:
+
+```
+summary: "Summary of proof state."
+escape: True
+```
+
+Here `summary` is a string that is the detailed summary of the proof state and `escape` is a boolean. When escape is true, we exit this proof attempt and go back to revise the formula. When escape is false, we continue the proof attempt.
+
+Do not attempt to escape unless you have a solid reason to believe the formula is false, with a proper counterexample and detailed documentation of how this counterexample was discovered and why it shows the formula is not valid. If the counterexample derives from an assumption or invariant made *during the proof*, such as because of a dC cut in the tactic, then do not escape. Rather, add that to the summary under failed proof directions and provide instructions to backtrack to before the bad cut. Only if the counterexample shows the original formula is not valid, then escape.
+If you do decide to exit, speculate on how to fix the theorem in the summary, trying to be as specific as possible. For example, are there some minimal extra assumptions that you could add to make the theorem valid?
+
+In the summary, you should include the following sections, many of which should carry over from the previous summary provided to you.
+
+1. The global proof plan so far. 
+   Mostly carries over from previous summary unless the latest step surfaced an issue or new insight.
+2. (New) Previous Tactic (that is, the currently applied tactic in the latest step).
+   Just copies over from input item 3. Do not make any changes or omissions.
+3. The current open subgoals with exact sequent locations if we know them.
+   Copies over from input item 4.
+3. Any mistakes made so far and how we fixed them. This is important to avoid repeating the same mistakes in future steps. Guide the reader so they know what they must do to avoid repeating these mistakes.
+   Partly carries over from previous summary. Might need to add new information if the latest step surfaced a new mistake or insight on how to fix a mistake.
+   Remember to include all relevant context, such as the tactic leading up to the issue, the reason for the problem, and how to avoid it in the future.
+4. Previous proof directions that failed, if any, along with details such as the counterexamples discovered at the end of those directions.
+   Mostly carries over from previous summary unless the latest step surfaced a new issue or insight.
+5. Any other relevant information about the proof state that will let a reader work on the proof from here assuming no other information besides the original formula to prove is provided to them.
+   Partly carries over from previous summary. Might need to add new information if the latest step surfaced new relevant information. Remember that your summary and the original formula will be all the reader has to work from to proceed with the proof, so do not omit useful details.
+Some of these sections may be empty if the proof is still in early stages, but you should still include the section headers for completeness.

@@ -1,0 +1,26 @@
+Your task is to guess a loop invariant for a game loop given the loop body and the postcondition.
+
+A loop of the form {α}*^@ executes the body α zero or more times (and we must account for every possibility). A loop invariant I is a property that:
+1. Holds before the loop starts (precondition implies I)
+2. Is preserved by each iteration of the loop body (if I holds before α, then I holds after α)
+3. Combined with loop termination, implies the postcondition
+
+A loop of the form {α}* executes the body α zero or more times, and how many times is our choice.
+In this case, the invariant should be such if we run the loop enough (finite) times, the postcondition will be satisfied.
+
+While choosing the precondition/invariant, you need to consider the essential properties that remain true throughout all possible iterations of the loop body, considering both angel and demon choices.
+
+The loop invariant should be typically involves bounds, safety properties, or relationships between variables
+
+Return your answer as a logical formula in KeYmaera X syntax:
+- Use & for logical AND
+- Use | for logical OR  
+- Use ! for logical NOT
+- Use = for equality
+- Use <, <=, >, >= for comparisons
+- Use parentheses for grouping
+Use only variables you see in the problem. For example, if the problem has `x`, use `x`, not `x(0)`.
+
+Provide up to 4 lines describing your reasoning. Then after a blank line, write a code block with the loop invariant in KeYmaera X syntax.
+
+{% include 'Instructions.jinja' %}

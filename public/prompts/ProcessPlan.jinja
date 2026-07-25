@@ -1,0 +1,62 @@
+This is some guidance on how to use an Angel strategy to come up with the invariant of a Demon loop in dGL. Think along the following steps:
+
+## 0: Modes of the strategy.
+
+If your strategy involves switching between different control modes, first identify what each of these modes are. Then think about what modes or groups of modes are:
+- self-inductive, i.e., if you start in that mode or group of modes, you can stay in that mode or group of modes indefinitely by following the strategy.
+- reaching, i.e., if you start outside that mode or group of modes, you can reach a safely inductive group of modes.
+
+Then, order these modes or group of modes such that the self-inductive modes are first, followed by the reaching modes, such that if a one mode/group reaches another, the reached mode/group appears earlier in the order.
+
+Then for each mode/group, follow steps 1-3 below to come up with the part of the invariant corresponding to that mode/group. Finally, combine all these parts using logical OR to get the final invariant.
+
+## 1: Semi-formal Initial Conditions
+
+Come up with semi-formal initial conditions under which the provided Angel strategy will work.
+
+These are equations and inequalities that must hold for the strategy to succeed.
+You can think about these in three steps:
+   * Inequalities/Equations:
+      - You may use variables in the original question and polynomials in terms of them, the comparison operates (<. <=, =, >=, >), logical operators `and`, `or` and `not`, and short English phrases to express bounds of variables, e.g., "upper bound of x", "lower bound of y over one iteration".
+      - You may introduce new intermediate variables if necessary to express a physically meaningful quantity if it appears in multiple places. Remember to describe any introduced variable in the next section. Also introduce equations/inequalities to define any used values/bounds of the variables. That is, if there is a reference to an upper bound of variable x, there should be an inequality of the form x < ... or x <= ... to define what the upper bound of x means, and analogously for lower bounds (>, >=) and direct reference (=). In the end, there should be a way to express all introduced variables or bounds of introduced variables in terms of the original variables by transitively following the equations/inequalities.
+      - Include when applicable, any initial conditions required to ensure that we start from the specified initial control mode.
+      - Include any relevant assumptions on constants.
+      - When relevant, you may provide a one-line explanation in parentheses on the newline after an inequality/equation to clarify its purpose.
+   * Introduced Variables:
+      - List any intermediate variables introduced, along with a short description, e.g., "time_to_target = time taken by the agent to reach target position p".
+   * Required Bounds:
+      - A list of bounds whose explicit mathematical expression is required to replace any English phrases in the inequalities from section 1.
+      - Each list item should specify:
+         * The side of the bound (Upper or Lower),
+         * The variable it applies to (could be an introduced variables from section 2),
+         * The type of bound:
+            - `per-iteration`: bounds a variable for a single loop iteration,
+            - `for-all-time`: (holds over arbitrarily many iterations / unbounded time), or
+            - `time-parameterized`: bound expressed as a function of time.
+         * Any dependencies on other bounds in the list. Ensure there are no circular dependencies.
+         * Any assumptions about the mode/Angel choices under which the bound holds.
+
+## 2: Bounds
+
+Taking forward the required bounds in section 3 of step 1, come up with mathematical expressions for each bound.
+- Some bound expressions may depend on others. Consider this dependency order while coming up with the expressions: think about a bound after you have already dealt with the bounds it depends on.
+- Come up with a SINGLE concise polynomial bound formula for each variable upper/lower bound.
+- Use ONLY polynomial expressions (no exp, log, sin, cos, transcendental functions). Allowed: + - * numeric constants, variable names.
+Additionally for time-parameterized bounds, you may use the global time variable s if needed, and special "initial value" variable v0 for the variable v being bounded. The initial value variable represents the value of v right now and must use the suffix "0", e.g., x0 for variable x.
+- For time-parameterized bounds, express as polynomial in s (e.g., v <= v0 + a1*s + a2*s^2).
+- Maintain variable names exactly as given. Do not introduce new variables (except for global time s and initial value variables).
+- If previous feedback indicates an issue, correct it.
+- ONE formula only; if min/max needed, use inequality and logical operators.
+- If the bound is per-iteration, avoid time variable unless explicitly required.
+- If the bound is for-all-time, use inequalities valid for all s >= 0. s should not appear in the formula.
+
+## 3: Construct the Overall Formula
+
+Put together the informal constraints from step one and the expressions from step two to get a single mathematical loop invariant formula. Don't forget to include assumptions about constants and initial mode conditions from step one.
+- Formula must consist of polynomial inequalities/equations along with logical operators using the existing variable names; avoid transcendental functions and never use new introduced variables.
+- The formula expressing the new region from which Angel can stay safe by following the new strategy typically respects all the bounds and constraints surfaced during the analysis; you can incorporate them into a single invariant predicate by conjunction.
+
+## 4: Final advice.
+- Remember to take the disjunction of the safe initial conditions in step 3 of all relevant modes.
+- If previous feedback indicates an issue, correct it.
+- Your resulting formula should be inductive, i.e., if it holds before an iteration of the loop, then after following the Angel strategy through the loop body, it should still hold.

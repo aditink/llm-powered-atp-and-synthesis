@@ -1,0 +1,16 @@
+The assignment game:
+{{ query.asst }}
+
+Postcondition:
+{{ query.postcondition }}
+
+Overall game in which this sub-problem arises:
+{{ query.overall }}
+
+{% if query.history %}
+Here is an analysis of the game and Angel's planned strategy, possibly followed by a log of what you have tried in the past in the process of precondition computation:
+
+{{ query.history }}
+
+{% endif %}
+What is the weakest precondition for this nondeterministic assignment?

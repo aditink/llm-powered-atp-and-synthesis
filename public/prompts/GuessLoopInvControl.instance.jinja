@@ -1,0 +1,18 @@
+Loop body:
+{{ query.body }}
+
+Postcondition:
+{{ query.postcondition }}
+
+Overall game in which this loop appears (for context): 
+{{ query.overall }}
+
+{% if query.history %}
+Here is an analysis of the game, the strategy that Angel is trying to play, and a log of things that you have already tried in the past.
+Carefully consider this information.
+
+{{ query.history }}
+
+{% endif %}
+
+What is a suitable loop invariant for this loop?

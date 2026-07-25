@@ -1,0 +1,34 @@
+The dGL Loop:
+{{ query.loop }}
+
+Control analysis:
+{{ query.analysis }}
+
+Angel's Strategy plan:
+{{ query.plan }}
+
+Constraints we need:
+{{ query.constraints_text }}
+
+Bound request that you should find a polynomial bound formula for:
+- Variable to bound: {{ query.bound_name }}
+- Side: {{ query.bound_side }}
+- Type: {{ query.bound_type }}
+- Assumptions on the game under which the bound holds: {{ query.assumptions }}
+- Known bounds of other variables that you can assume hold while coming up with this bound:
+{% for db in query.dependency_bounds %}
+    * {{ db }}
+{% endfor %}
+
+{% if query.previous_attempt %}
+Previous attempt (incorrect):
+{{ query.previous_attempt }}
+{% endif %}
+{% if query.previous_feedback %}
+Feedback to address:
+{{ query.previous_feedback }}
+{% endif %}
+
+Provide the polynomial bound formula now.
+Give a brief (2-3 sentences) explanation, followed by a blank line, followed with a final code block containing ONLY the bound formula.
+There should be no text after the code block.

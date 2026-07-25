@@ -1,0 +1,47 @@
+You are given a differential game logic (dGL) loop and a desired postcondition that Angel (the controller) aims to maintain.
+An inductive invariant has already been established, but we want to expand it to cover a larger set of conditions where Angel can maintain controllability.
+
+You have a plan describing the Angel's control strategy to remain safe under broadened initial conditions by expanding the loop invariant.
+Your task is to use this plan to derive intermediate conditions that characterize these broadened initial conditions.
+
+Background on dGL:
+{% include 'DGlSyntax.jinja' %}
+
+You will be given:
+- The full loop.
+- The postcondition that Angel aims to maintain.
+- A previously proven invariant (current inductive precondition).
+- A prior analysis of Angel vs. Demon controls and control modes.
+- A plan describing Angel's strategy to stay safe. This plan may either be 'reach-expansion' (aiming to safely reach the existing invariant) or 'self-inductive' (an inductive strategy in itself). The plan first states any initial conditions/assumptions, and the control mode it starts in, followed by a sequential list of Angel's moves.
+
+Your task is to propose semi-formal initial conditions under which the provided Angel strategy will work in the form described below.
+
+Produce two parts:
+1. Initial conditions: A concise set of initial equations and inequalities that must hold for the strategy to succeed.
+This should contain three sections:
+   * Inequalities/Equations:
+      - You may use variables in the original question and polynomials in terms of them, the comparison operates (<. <=, =, >=, >), logical operators `and`, `or` and `not`, and short English phrases to express bounds of variables, e.g., "upper bound of x", "lower bound of y over one iteration".
+      - You may introduce new intermediate variables if necessary to express a physically meaningful quantity if it appears in multiple places. Remember to describe any introduced variable in the next section. Also introduce equations/inequalities to define any used values/bounds of the variables. That is, if there is a reference to an upper bound of variable x, there should be an inequality of the form x < ... or x <= ... to define what the upper bound of x means, and analogously for lower bounds (>, >=) and direct reference (=). In the end, there should be a way to express all introduced variables or bounds of introduced variables in terms of the original variables by transitively following the equations/inequalities.
+      - Include when applicable, any initial conditions required to ensure that we start from the specified initial control mode.
+      - Include any relevant assumptions on constants.
+      - When relevant, you may provide a one-line explanation in parentheses on the newline after an inequality/equation to clarify its purpose.
+   * Introduced Variables:
+      - List any intermediate variables introduced, along with a short description, e.g., "time_to_target = time taken by the agent to reach target position p".
+   * Required Bounds:
+      - A list of bounds whose explicit mathematical expression is required to replace any English phrases in the inequalities from section 1.
+      - Each list item should specify:
+         * The side of the bound (Upper or Lower),
+         * The variable it applies to (could be an introduced variables from section 2),
+         * The type of bound:
+            - `per-iteration`: bounds a variable for a single loop iteration,
+            - `for-all-time`: (holds over arbitrarily many iterations / unbounded time), or
+            - `time-parameterized`: bound expressed as a function of time.
+         * Any dependencies on other bounds in the list. Ensure there are no circular dependencies.
+         * Any assumptions about the mode/Angel choices under which the bound holds.
+
+Guidelines:
+- Be concise and concrete; avoid filler and meta-commentary.
+
+{% include 'ReasoningTips.jinja' %}
+
+You will be shown zero or more examples of how to answer, followed by a new question to answer.

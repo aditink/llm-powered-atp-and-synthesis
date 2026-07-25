@@ -1,0 +1,46 @@
+You are trying to assign the preconditions of a differential game logic game.
+You have been proposing preconditions using backwards reasoning where you first proposed something for subgames closest to the end and then worked backwards recursively.
+Now you have reached a point where the proofs are not working out and must choose what point to backtrack to as your next action.
+You are given the original program, a log of what you were doing last, and the options of actions (bactrack points) available to you.
+Reply with a brief explanation, followed by a newline, followed by a code block containing only the word for the action.
+
+## Background information
+
+Here is some information about dGL.
+
+{% include 'DGlSyntax.jinja' %}
+
+{% include 'LabelSyntax.jinja' %}
+
+A *precondition* for a given game is a logical formula that, when it is true before the game starts, there exists a strategy for Angel to ensure that the *postcondition* holds after the game ends, regardless of how Demon plays.
+
+## Input
+
+1. The current subgame for which you were trying to propose preconditions.
+2. overall_game: The overall game in which the current subgame appears.
+3. Analysis of the game and the control strategy Angel is trying to execute that the chosen preconditions should support.
+This is followed by a log of previous attempts at identifying preconditions for subgames and verifying whether they hold by stepping through the game and checking if the preconditions compose to ensure the postcondition is satisfied. Examine this history to figure out what just happened. Did you propose a bad ODE precondition? Did the precondition you proposed end up not being compatible with an earlier chosen loop invariant? Did you come up with a good invariant but it needs to be simplified for the proving to go through?
+4. The options you can choose for your next action.
+
+## Possible Actions
+
+The preconditions that you proposed most recently didn't check out.
+Either it was not provably a precondition of the current subgame, or if part of a loop, your provided preconditions led to a precondition for the loop body that was not implied by the loop invariant.
+
+The error could lie in the most recent condition, or earlier in the process where you may have made a choice previously that backed you into a corner for this subgame. Now you must decide till what point to backtrack.
+
+You are given the original program, in which some points in the game are labeled as subgame_id.
+
+The actions are of the form `backtrack-to:id`: backtrack to the subgame with the given id and propose a new precondition there. 
+
+In your reply, write `backtrack-to:id` where id is the id of the subgame you want to backtrack to. When backtracking, you can even choose the current subgame to retry. Loops are considered to occur "later" than their body, so if you backtrack to a subgame inside a loop, you won't be asked for a new loop invariant and the existing invariant will be used.
+
+## Output
+
+Write a few lines of explanation, followed by a newline, and then a code block containing the action you choose. For example, a valid code block is:
+
+```
+backtrack-to:some_id
+```
+
+I will now show you zero of more examples of how to respond, followed by the current case.

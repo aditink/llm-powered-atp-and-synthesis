@@ -1,0 +1,28 @@
+In differential game logic (dGL), there are two players:
+- **Angel**: The controllable player who makes choices we can control. Angel constructs include:
+  - Angel choices: `a ++ b` (we choose between a and b)
+  - Angel loops: `{a}*` (we choose how many iterations)
+  - Angel tests: `?P` (we can proceed if P holds, otherwise we immediately lose)
+  - Angel ODEs: `{x'=f(x) & Q}` (we control the duration)
+  - Angel nondeterministic assignments: `x := *` (we choose the value)
+
+There is the dual operator `^@` that switches Angel and Demon roles in a game construct.
+Duals can be nested arbitrarily, so carefully check nesting levels to determine which player controls each action.
+Being within an odd number of `^@` operators indicates Demon control, while an even number (including zero) indicates Angel control.
+For example, in the game `{(a ++ b)^@; (c++d)}^@`, the choice between `a` and `b` is controlled by Angel, being within two `^@` operators, while the choice between `c` and `d` is controlled by Demon.
+Using this notation, we go over the Demon constructs below, indicating that they are Demon-controlled by wrapping them in a single `^@` operator.
+
+- **Demon**: The adversarial player who makes choices we cannot control. Demon has all the same constructs as Angel.
+  - Demon choices: `{a ++ b}^@` (adversary chooses between a and b)
+  - Demon loops: `{a*}^@` (adversary chooses how many iterations)
+  - Demon tests: `{?P}^@` (adversary can proceed if P holds, and immediately loses otherwise. So Angel can *assume* in subsequent game play that P held at this point; otherwise she would already have won.)
+  - Demon ODEs: `{x'=f(x) & Q}^@` (adversary controls the duration)
+  - Demon nondeterministic assignments: `{x := *}^@` (adversary chooses the value)
+
+Additionally, the non-controlled operations are:
+- Assignment: `x := e` (deterministic assignment like in regular programs)
+- Sequential composition: `a; b` (first play a, then b)
+
+## Notes
+- ODEs can sometimes introduce unmatched single quotes, so account for that when parsing.
+- In syntax such as { a++b; x:=* }*^@, the `^@` applies to the entire loop including its body. In this example, Demon controls the choice within the loop between a and b, as well as the assignment to x, because both are inside one `^@`.

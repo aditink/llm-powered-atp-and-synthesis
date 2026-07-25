@@ -1,0 +1,18 @@
+Some syntax instructions to keep in mind are:
+- Do not add comments to your code blocks, as this may cause parsing issues.
+
+Some information about dGL:
+"@" is the dual symbol that flips who controls the action between Angel and Demon.
+
+For example:
+In game "x := *", Angel gets to choose what value is assigned.
+The weakest precondition for such an assignment with postcondition P is the formula that holds *for some* value that could be assigned to x.
+
+In game "{x := *;}^@", any real number can be assigned, per Demon's decision.
+The weakest precondition for such an assignment with postcondition P is the formula that holds *for all* possible values that could be assigned to x.
+
+{% raw %}
+In game "{{ x:= *;}^@}^@" the control flips twice, so Angel gets to choose the assignment to x.
+{% endraw %}
+
+{% include 'ReasoningTips.jinja' %}
