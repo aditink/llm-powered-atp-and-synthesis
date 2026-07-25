@@ -23,22 +23,14 @@ const mobile = await page.evaluate(() => ({
   promptTitle: document.querySelector(".prompt-reader h2")?.textContent,
 }));
 const pages = {};
-for (const route of ["cases", "results", "prompts", "artifact"]) {
+for (const route of ["cases", "results", "prompts"]) {
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto(`http://127.0.0.1:5173/cleopatra-paper/#${route}`, { waitUntil: "networkidle" });
   pages[route] = await page.evaluate((currentRoute) => ({
     heading: document.querySelector("h1")?.textContent,
     bodyWidth: document.body.scrollWidth,
     viewportWidth: innerWidth,
-    codeColors: currentRoute === "artifact" ? {
-      foreground: getComputedStyle(document.querySelector("pre code")).color,
-      background: getComputedStyle(document.querySelector("pre code")).backgroundColor,
-      container: getComputedStyle(document.querySelector("pre")).backgroundColor,
-    } : undefined,
   }), route);
-  if (route === "artifact") {
-    await page.screenshot({ path: "/tmp/cleopatra-artifact-page.png", fullPage: true });
-  }
   if (route === "cases") {
     await page.locator(".case-row details summary").first().click();
     await page.locator('[data-case-tab="synthesis"]').first().click();
@@ -60,5 +52,13 @@ for (const route of ["cases", "results", "prompts", "artifact"]) {
     );
   }
 }
+await page.goto("http://127.0.0.1:5173/cleopatra-paper/#overview", { waitUntil: "networkidle" });
+await page.locator(".hero-citation summary").click();
+pages.overview = await page.evaluate(() => ({
+  internalArtifactTab: [...document.querySelectorAll(".site-header nav a")].some((link) => link.textContent.trim() === "Artifact"),
+  sections: document.querySelectorAll("main > section").length,
+  citation: document.querySelector(".hero-citation code")?.textContent,
+}));
+await page.screenshot({ path: "/tmp/cleopatra-home.png", fullPage: true });
 console.log(JSON.stringify({ desktop, mobile, pages, errors }, null, 2));
 await browser.close();
