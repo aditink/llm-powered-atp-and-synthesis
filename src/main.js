@@ -35,7 +35,7 @@ function shell(content) {
         ${navLink("prompts", "Prompts")}
         ${navLink("cases", "Case studies")}
         ${navLink("results", "Results")}
-        ${navLink("reproduce", "Reproduce")}
+        ${navLink("artifact", "Artifact")}
       </nav>
       <div class="header-links">
         <a href="${PAPER}" target="_blank">Paper ${icon("ArrowUpRight", 14)}</a>
@@ -83,7 +83,7 @@ function overview() {
       <a href="#prompts"><span>${icon("Code2", 23)}</span><strong>Prompt library</strong><p>Every distinct production query and shared guide, rendered and searchable.</p></a>
       <a href="#cases"><span>${icon("FlaskConical", 23)}</span><strong>Five case studies</strong><p>Models, objectives, challenges, guidelines, and outcomes.</p></a>
       <a href="#results"><span>${icon("Database", 23)}</span><strong>Experiment data</strong><p>Verification, synthesis, ablation, cost, and token results.</p></a>
-      <a href="#reproduce"><span>${icon("FileText", 23)}</span><strong>Reproduction guide</strong><p>Replay cached runs or optionally perform live evaluations.</p></a>
+      <a href="#artifact"><span>${icon("FileText", 23)}</span><strong>Artifact guide</strong><p>Replay cached runs or optionally perform live evaluations.</p></a>
     </section>
     <section class="citation-band">
       <div><p class="eyebrow">Software artifact</p><h2>Archived for reproducibility</h2><p>${data.generatedFrom}. GPL 2.0+.</p></div>
@@ -165,9 +165,9 @@ function results() {
   document.querySelectorAll("[data-result]").forEach((b)=>b.onclick=()=>{state.result=b.dataset.result;results();});
 }
 
-function reproduce() {
+function artifact() {
   shell(`
-    <section class="page-head"><p class="eyebrow">Artifact evaluation</p><h1>Reproduce the experiments</h1><p>Replay the recorded successful paths without API access, or optionally run the pipelines live with an OpenAI API key.</p></section>
+    <section class="page-head"><p class="eyebrow">Artifact evaluation</p><h1>Artifact</h1><p>Replay the recorded successful paths without API access, or optionally run the pipelines live with an OpenAI API key.</p></section>
     <section class="section reproduce-grid">
       <aside><nav><a href="#setup">01 Setup</a><a href="#replay">02 Replay</a><a href="#live">03 Live runs</a><a href="#citation">04 Cite</a></nav><a class="button primary" href="${ARTIFACT}" target="_blank">${icon("Download")} Download artifact</a></aside>
       <div class="prose">
@@ -206,7 +206,11 @@ function bindPrompt(selected) {
 }
 function render() {
   state.page = location.hash.slice(1) || "overview";
-  ({ overview, prompts, cases, results, reproduce }[state.page] || overview)();
+  if (state.page === "reproduce") {
+    location.replace("#artifact");
+    return;
+  }
+  ({ overview, prompts, cases, results, artifact }[state.page] || overview)();
   scrollTo({ top: 0, behavior: "instant" });
 }
 addEventListener("hashchange", render);

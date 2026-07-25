@@ -23,14 +23,22 @@ const mobile = await page.evaluate(() => ({
   promptTitle: document.querySelector(".prompt-reader h2")?.textContent,
 }));
 const pages = {};
-for (const route of ["cases", "results", "reproduce"]) {
+for (const route of ["cases", "results", "artifact"]) {
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto(`http://127.0.0.1:5173/cleopatra-paper/#${route}`, { waitUntil: "networkidle" });
-  pages[route] = await page.evaluate(() => ({
+  pages[route] = await page.evaluate((currentRoute) => ({
     heading: document.querySelector("h1")?.textContent,
     bodyWidth: document.body.scrollWidth,
     viewportWidth: innerWidth,
-  }));
+    codeColors: currentRoute === "artifact" ? {
+      foreground: getComputedStyle(document.querySelector("pre code")).color,
+      background: getComputedStyle(document.querySelector("pre code")).backgroundColor,
+      container: getComputedStyle(document.querySelector("pre")).backgroundColor,
+    } : undefined,
+  }), route);
+  if (route === "artifact") {
+    await page.screenshot({ path: "/tmp/cleopatra-artifact-page.png", fullPage: true });
+  }
 }
 console.log(JSON.stringify({ desktop, mobile, pages, errors }, null, 2));
 await browser.close();
