@@ -9,7 +9,7 @@ const PAPER = "https://arxiv.org/abs/2603.00737";
 const data = await fetch(`${BASE}data/content.json`).then((r) => r.json());
 
 const icons = { ArrowUpRight, BookOpen, Check, ChevronDown, Clipboard, Code2, Database, Download, ExternalLink, FileText, FlaskConical, Github, Menu, Search, X };
-let state = { page: location.hash.slice(1) || "overview", prompt: "AnalyzeGameLoop", promptFilter: "primary", promptSearch: "", result: "verification" };
+let state = { page: location.hash.slice(1) || "overview", prompt: "AnalyzeGameLoop", promptFilter: "primary", promptSearch: "", result: "verification", caseTabs: {} };
 
 const app = document.querySelector("#app");
 
@@ -32,7 +32,7 @@ function shell(content) {
       <button class="icon-button mobile-menu" aria-label="Open navigation">${icon("Menu", 20)}</button>
       <nav aria-label="Primary">
         ${navLink("overview", "Overview")}
-        ${navLink("prompts", "Prompts")}
+        ${navLink("prompts", "Prompts & traces")}
         ${navLink("cases", "Case studies")}
         ${navLink("results", "Results")}
         ${navLink("artifact", "Artifact")}
@@ -80,7 +80,7 @@ function overview() {
       </div>
     </section>
     <section class="section quick-links">
-      <a href="#prompts"><span>${icon("Code2", 23)}</span><strong>Prompt library</strong><p>Every distinct production query and shared guide, rendered and searchable.</p></a>
+      <a href="#prompts"><span>${icon("Code2", 23)}</span><strong>Prompts & traces</strong><p>Production templates and one successful checked trace per benchmark.</p></a>
       <a href="#cases"><span>${icon("FlaskConical", 23)}</span><strong>Five case studies</strong><p>Models, objectives, challenges, guidelines, and outcomes.</p></a>
       <a href="#results"><span>${icon("Database", 23)}</span><strong>Experiment data</strong><p>Verification, synthesis, ablation, cost, and token results.</p></a>
       <a href="#artifact"><span>${icon("FileText", 23)}</span><strong>Artifact guide</strong><p>Replay cached runs or optionally perform live evaluations.</p></a>
@@ -102,7 +102,7 @@ function prompts() {
     (!q || `${p.title} ${p.description} ${p.pipeline}`.toLowerCase().includes(q)));
   const selected = data.prompts.find((p) => p.id === state.prompt) || visible[0] || data.prompts[0];
   shell(`
-    <section class="page-head"><p class="eyebrow">Published prompt templates</p><h1>Prompt library</h1><p>Distinct query roles are shown once. Shared references are separated from query templates, while ablation and legacy variants remain available for completeness.</p></section>
+    <section class="page-head"><p class="eyebrow">Published templates and checked runs</p><h1>Prompts & traces</h1><p>Browse every distinct production query and shared guide, then inspect one representative successful verification trace for each benchmark.</p></section>
     <section class="prompt-workspace">
       <aside class="prompt-sidebar">
         <label class="search">${icon("Search")}<input id="prompt-search" type="search" value="${escape(state.promptSearch)}" placeholder="Search prompts" /></label>
@@ -118,6 +118,15 @@ function prompts() {
         ${selected.instance ? `<section class="message"><div class="message-label"><span>User template</span><small>${selected.id}.instance.jinja</small></div><div class="markdown">${promptMarkdown(selected.instance)}</div></section>` : ""}
         ${selected.shared ? `<section class="message"><div class="message-label"><span>Shared guide</span><small>${selected.id}.jinja</small></div><div class="markdown">${promptMarkdown(selected.shared)}</div></section>` : ""}
       </article>
+    </section>
+    <section class="section benchmark-traces">
+      <div class="section-heading"><p class="eyebrow">Successful examples</p><h2>One checked trace per problem</h2><p>Each example is taken from a successful GPT-5.5 high-reasoning run. The displayed tactic is the final script accepted by KeYmaera X; complete interaction caches are available in the artifact.</p></div>
+      <div class="trace-grid">${data.cases.map((c) => {
+        const trace = data.verificationTraces.find((item) => item.benchmark === c.id);
+        if (!trace) return "";
+        return `<article class="trace-card"><header><div><span class="tag verification">Verification</span><h3>${c.title}</h3></div><span class="trace-outcome">${icon("Check",14)} Proof checked</span></header><p>${trace.requests} requests · ${Number(trace.outputTokens).toLocaleString()} output tokens · $${Number(trace.cost).toFixed(2)}</p><details><summary>View theorem and final tactic ${icon("ChevronDown",16)}</summary><h4>Theorem</h4><pre><code>${escape(trace.formula)}</code></pre><h4>Accepted tactic</h4><pre><code>${escape(trace.tactic)}</code></pre></details></article>`;
+      }).join("")}</div>
+      <a class="button" href="${ARTIFACT}" target="_blank">${icon("Database")} Open complete caches</a>
     </section>`);
   bindPrompt(selected);
 }
@@ -130,37 +139,57 @@ function cases() {
         <div class="case-index">0${i+1}</div>
         <div class="case-summary"><p class="eyebrow">${c.domain}</p><h2>${c.title}</h2><p>${c.summary}</p><div class="status-line"><span class="success">${icon("Check",14)} ${c.verification}</span><span class="${c.synthesis.includes("Not")?"neutral":"success"}">${c.synthesis.includes("Not")?"×":icon("Check",14)} ${c.synthesis}</span></div></div>
         <div class="case-detail"><dl><dt>Primary challenge</dt><dd>${c.challenge}</dd><dt>Provenance</dt><dd>${c.source}</dd></dl>
-          <details><summary>Inspect dGL model ${icon("ChevronDown",16)}</summary><div class="code-tabs"><h3>Game</h3><pre><code>${escape(c.program)}</code></pre><h3>Postcondition</h3><pre><code>${escape(c.postcondition)}</code></pre>${c.guideline?`<h3>Synthesis guideline</h3><pre><code>${escape(c.guideline)}</code></pre>`:""}</div></details>
+          <details><summary>Inspect benchmark input ${icon("ChevronDown",16)}</summary><div class="code-tabs">
+            <div class="view-tabs case-tabs"><button class="${(state.caseTabs[c.id]||"verification")==="verification"?"active":""}" data-case="${c.id}" data-case-tab="verification">Verification</button><button class="${state.caseTabs[c.id]==="synthesis"?"active":""}" data-case="${c.id}" data-case-tab="synthesis">Synthesis</button></div>
+            ${(state.caseTabs[c.id]||"verification")==="verification"
+              ? `<h3>Verification theorem</h3><pre><code>${escape(c.verificationFormula)}</code></pre>`
+              : `<h3>Hybrid game</h3><pre><code>${escape(c.program)}</code></pre><h3>Target postcondition</h3><pre><code>${escape(c.postcondition)}</code></pre>${c.guideline?`<h3>Informal synthesis guideline</h3><pre><code>${escape(c.guideline)}</code></pre>`:""}`}
+          </div></details>
         </div>
       </article>`).join("")}</section>`);
+  document.querySelectorAll("[data-case-tab]").forEach((button) => button.onclick = () => {
+    state.caseTabs[button.dataset.case] = button.dataset.caseTab;
+    cases();
+    document.querySelector(`[data-case="${button.dataset.case}"]`)?.closest("details")?.setAttribute("open", "");
+  });
 }
 
-function aggregate(rows) {
-  const by = new Map();
-  for (const row of rows) {
-    const key = row.bench_name;
-    if (!by.has(key)) by.set(key, { name:key, runs:0, successes:0, price:0, requests:0, output:0 });
-    const x=by.get(key); x.runs++; x.successes += row.success === "True" ? 1 : 0; x.price += Number(row.price||0); x.requests += Number(row.num_requests||0); x.output += Number(row.output_tokens||0);
-  }
-  return [...by.values()];
-}
 function results() {
-  const verification = data.resultSets.filter((x)=>x.id.startsWith("table1_")).flatMap((x)=>x.rows.map((r)=>({...r,set:x.id.replace("table1_","")})));
-  const synthesis = data.resultSets.filter((x)=>x.id.startsWith("table3_")).flatMap((x)=>x.rows.map((r)=>({...r,set:x.id.replace("table3_","")})));
-  const rows = state.result === "verification" ? verification : synthesis;
-  const summary = aggregate(rows);
+  const verificationSummary = [
+    ["Qwen3.5","✓","1/5","0.13 ± 0.13","—","88.0 ± 18.0","254 ± 17"],
+    ["GPT-5.4-mini","","1/5","0.13 ± 0.13","1.07 ± 1.05","138.5 ± 130.5","41 ± 39"],
+    ["GPT-5.4-mini","✓","2/5","0.33 ± 0.21","0.70 ± 0.17","11.0 ± 2.7","148 ± 36"],
+    ["GPT-5.4","✓","5/5","0.93 ± 0.07","2.21 ± 0.44","9.4 ± 1.4","92 ± 18"],
+    ["GPT-5.5","","3/5","0.60 ± 0.24","5.95 ± 5.25","47.3 ± 33.7","35 ± 30"],
+    ["GPT-5.5","✓","5/5","1.00 ± 0.00","2.05 ± 0.56","6.1 ± 1.3","63 ± 17","best"],
+  ];
+  const verificationDetail = [
+    ["Qwen3.5, reas.","2/3","—","0/3","—","0/3","—","0/3","—","0/3","—"],
+    ["GPT-5.4-mini, no reas.","2/3","1.07","0/3","—","0/3","—","0/3","—","0/3","—"],
+    ["GPT-5.4-mini, reas.","2/3","0.33","0/3","—","0/3","—","0/3","—","3/3","0.95"],
+    ["GPT-5.4, reas.","3/3","0.81","3/3","2.09","3/3","1.22","3/3","4.38","2/3","2.74"],
+    ["GPT-5.5, no reas.","1/1","0.17","0/1","—","1/1","16.44","0/1","—","1/1","1.24"],
+    ["GPT-5.5, reas.","3/3","0.88","3/3","1.80","3/3","1.89","3/3","4.68","3/3","1.01"],
+  ];
+  const synthesisSummary = [
+    ["Baseline","0/5","—","—","—","—"],
+    ["Ablation","2/5","0.40 ± 0.24","0.80 ± 0.06","19.5 ± 2.5","76 ± 7"],
+    ["Full Pipeline","4/5","0.80 ± 0.20","2.19 ± 0.73","41.0 ± 10.0","203 ± 67","best"],
+  ];
+  const synthesisDetail = [
+    ["Ablation","1/1","0.86","0/1","—","0/1","—","0/1","—","1/1","0.74"],
+    ["Full Pipeline","2/2","0.75","0/2","—","2/2","5.35","2/2","1.90","2/2","0.75","best"],
+  ];
+  const cells = (row) => row.slice(0, row.at(-1) === "best" ? -1 : row.length);
+  const simpleTable = (headers, rows) => `<div class="table-wrap paper-table"><table><thead><tr>${headers.map((h)=>`<th>${h}</th>`).join("")}</tr></thead><tbody>${rows.map((r)=>`<tr class="${r.at(-1)==="best"?"best-row":""}">${cells(r).map((v,i)=>`<td>${i===0?`<strong>${v}</strong>`:v}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+  const benchmarkTable = (rows) => `<div class="table-wrap paper-table benchmark-table"><table><thead><tr><th rowspan="2">Configuration</th>${["Chem. Reaction","Coolant","Train","Lotka–Volterra","Van der Pol"].map((h)=>`<th colspan="2">${h}</th>`).join("")}</tr><tr>${Array(5).fill("<th>Succ.</th><th>Cost</th>").join("")}</tr></thead><tbody>${rows.map((r)=>`<tr class="${r.at(-1)==="best"?"best-row":""}">${cells(r).map((v,i)=>`<td>${i===0?`<strong>${v}</strong>`:v}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
   shell(`
-    <section class="page-head"><p class="eyebrow">Cached experiment results</p><h1>Results</h1><p>All values below are generated from the CSV files in artifact version 1. Cost is the recorded API price for the corresponding run.</p></section>
+    <section class="page-head"><p class="eyebrow">Paper evaluation</p><h1>Results</h1><p>These tables reproduce the compact evaluation tables from the paper. Cost, calls, and output tokens are averaged only over successful runs.</p></section>
     <section class="section result-section">
-      <div class="view-tabs"><button class="${state.result==="verification"?"active":""}" data-result="verification">Verification</button><button class="${state.result==="synthesis"?"active":""}" data-result="synthesis">Synthesis & ablation</button></div>
-      <div class="summary-grid">${summary.map((x)=>`<div><span>${x.name}</span><strong>${x.successes}/${x.runs}</strong><small>successful runs · ${x.requests.toLocaleString()} requests</small></div>`).join("")}</div>
-      <div class="table-wrap"><table><thead><tr><th>Benchmark</th><th>Configuration</th><th>Model</th><th>Reasoning</th><th>Success</th><th>Requests</th><th>Output tokens</th><th>Cost</th></tr></thead><tbody>
-        ${rows.map((r)=>`<tr><td><strong>${r.bench_name}</strong></td><td>${r.set.replaceAll("_"," ")}</td><td>${r.model_name}</td><td>${r.reasoning_effort||"default"}</td><td><span class="table-status ${r.success==="True"?"yes":"no"}">${r.success==="True"?"Solved":"Not solved"}</span></td><td>${Number(r.num_requests||0).toLocaleString()}</td><td>${Number(r.output_tokens||0).toLocaleString()}</td><td>$${Number(r.price||0).toFixed(2)}</td></tr>`).join("")}
-      </tbody></table></div>
-      <p class="table-note"><strong>Interpretation.</strong> A case study is solved when at least one run produces a formally checked proof or subvalue map. The synthesis ablation removes LLM-assisted interactive proving and unrestricted backtracking; it does not isolate every individual design choice.</p>
-    </section>
-    <section class="section traces"><div class="section-heading"><p class="eyebrow">Selected successful runs</p><h2>What an interaction looks like</h2><p>These compact narratives expose the useful structure without reproducing thousands of cache entries. Complete caches remain in the artifact.</p></div>
-      ${data.traces.map((t)=>`<article><div class="trace-head"><div><span class="tag">${t.type}</span><h3>${t.title}</h3><p>${t.model} · ${t.metrics}</p></div><span class="trace-outcome">${icon("Check",14)} ${t.outcome}</span></div><ol>${t.steps.map((s)=>`<li>${s}</li>`).join("")}</ol><details><summary>View checked excerpt ${icon("ChevronDown",16)}</summary><pre><code>${escape(t.excerpt)}</code></pre></details></article>`).join("")}
+      <div class="view-tabs"><button class="${state.result==="verification"?"active":""}" data-result="verification">Verification</button><button class="${state.result==="synthesis"?"active":""}" data-result="synthesis">Synthesis</button></div>
+      ${state.result==="verification"
+        ? `<div class="paper-result"><h2>Verification across models</h2>${simpleTable(["Model","Reasoning","Solved","Pass@1","Avg Cost ($)","Avg Calls","Avg Output (k tokens)"],verificationSummary)}<p class="table-note">Reasoning is high for OpenAI models and enabled for Qwen. Pass@1 is the mean empirical single-run success rate across case studies ± standard error.</p><h2>Verification by benchmark</h2>${benchmarkTable(verificationDetail)}<p class="table-note">Succ. is successful runs out of total runs. Cost is the average dollar cost of successful runs.</p></div>`
+        : `<div class="paper-result"><h2>Synthesis across configurations</h2>${simpleTable(["Configuration","Solved","Pass@1","Avg Cost ($)","Avg Calls","Avg Output (k tokens)"],synthesisSummary)}<p class="table-note">Each synthesis attempt runs four parallel pipeline threads. The ablation disables LLM-assisted proving and custom backtracking.</p><h2>Synthesis by benchmark</h2>${benchmarkTable(synthesisDetail)}<p class="table-note">Succ. is successful runs out of total runs. Cost is the average dollar cost of successful runs.</p></div>`}
     </section>`);
   document.querySelectorAll("[data-result]").forEach((b)=>b.onclick=()=>{state.result=b.dataset.result;results();});
 }

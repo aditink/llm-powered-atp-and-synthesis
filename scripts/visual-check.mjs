@@ -23,7 +23,7 @@ const mobile = await page.evaluate(() => ({
   promptTitle: document.querySelector(".prompt-reader h2")?.textContent,
 }));
 const pages = {};
-for (const route of ["cases", "results", "artifact"]) {
+for (const route of ["cases", "results", "prompts", "artifact"]) {
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto(`http://127.0.0.1:5173/cleopatra-paper/#${route}`, { waitUntil: "networkidle" });
   pages[route] = await page.evaluate((currentRoute) => ({
@@ -38,6 +38,26 @@ for (const route of ["cases", "results", "artifact"]) {
   }), route);
   if (route === "artifact") {
     await page.screenshot({ path: "/tmp/cleopatra-artifact-page.png", fullPage: true });
+  }
+  if (route === "cases") {
+    await page.locator(".case-row details summary").first().click();
+    await page.locator('[data-case-tab="synthesis"]').first().click();
+    pages.cases.synthesisTab = await page.locator(".case-row details[open] h3").first().textContent();
+    await page.screenshot({ path: "/tmp/cleopatra-cases.png", fullPage: true });
+  }
+  if (route === "results") {
+    pages.results.tables = await page.locator(".paper-table").count();
+    pages.results.rows = await page.locator(".paper-table tbody tr").count();
+    await page.locator('[data-result="synthesis"]').click();
+    pages.results.synthesisTables = await page.locator(".paper-table").count();
+    pages.results.synthesisRows = await page.locator(".paper-table tbody tr").count();
+    await page.screenshot({ path: "/tmp/cleopatra-results.png", fullPage: true });
+  }
+  if (route === "prompts") {
+    pages.prompts.traces = await page.locator(".trace-card").count();
+    pages.prompts.nonemptyTactics = await page.locator(".trace-card pre").evaluateAll(
+      (nodes) => nodes.filter((node) => node.textContent.trim().length > 0).length,
+    );
   }
 }
 console.log(JSON.stringify({ desktop, mobile, pages, errors }, null, 2));

@@ -127,6 +127,60 @@ const cases = caseSpecs.map((item) => {
   };
 });
 
+function allFiles(directory, filename) {
+  if (!fs.existsSync(directory)) return [];
+  return fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+    const full = path.join(directory, entry.name);
+    return entry.isDirectory() ? allFiles(full, filename) : entry.name === filename ? [full] : [];
+  });
+}
+
+function benchmarkFromFormula(formula) {
+  if (formula.includes("minAbsorbed")) return "coolant";
+  if (formula.includes("trainPos")) return "train";
+  if (formula.includes("xadd")) return "lotka";
+  if (formula.includes("Temp") && formula.includes("kA")) return "reaction";
+  if (formula.includes("x1") && formula.includes("x2")) return "vanderpol";
+  return "";
+}
+
+function yamlValue(source, key) {
+  return source.match(new RegExp(`\\n\\s+${key}: ([^\\n]+)`))?.[1]?.trim() || "";
+}
+
+const resultRoot = path.join(artifact, "experiments", "test-output");
+const verificationTraces = [];
+const traceRoot = path.join(resultRoot, "table1_gpt55_reasoning", "configs");
+for (const file of allFiles(traceRoot, "result.yaml")) {
+  const source = fs.readFileSync(file, "utf8");
+  if (!source.includes("success: true")) continue;
+  const rawFormula = source.match(/\n    formula: ([\s\S]*?)\n  policy:/)?.[1] || "";
+  const formula = rawFormula.replace(/\n\s+/g, " ").trim();
+  const benchmark = benchmarkFromFormula(formula);
+  if (!benchmark || verificationTraces.some((trace) => trace.benchmark === benchmark)) continue;
+  const rawTactic = source.match(/Proof tactic used:\n([\s\S]*?)\n\s+- true/)?.[1] || "";
+  const tactic = rawTactic
+    .split("\n")
+    .map((line) => line.replace(/^\s{14}/, ""))
+    .join("\n")
+    .trim();
+  verificationTraces.push({
+    benchmark,
+    formula,
+    tactic,
+    model: "GPT-5.5",
+    reasoning: "High",
+    requests: yamlValue(source, "num_requests"),
+    outputTokens: yamlValue(source, "output_tokens"),
+    cost: yamlValue(source, "price"),
+  });
+}
+
+for (const item of cases) {
+  item.verificationFormula =
+    verificationTraces.find((trace) => trace.benchmark === item.id)?.formula || "";
+}
+
 function csv(file) {
   const lines = fs.readFileSync(file, "utf8").trim().split(/\r?\n/);
   const headers = lines.shift().split(",");
@@ -136,45 +190,11 @@ function csv(file) {
   });
 }
 
-const resultRoot = path.join(artifact, "experiments", "test-output");
 const resultSets = fs.readdirSync(resultRoot)
   .filter((name) => fs.existsSync(path.join(resultRoot, name, "results_summary.csv")))
   .map((name) => ({ id: name, rows: csv(path.join(resultRoot, name, "results_summary.csv")) }));
 
-const traces = [
-  {
-    title: "Coolant verification",
-    type: "Verification",
-    outcome: "Proof found",
-    model: "GPT-5.5, high reasoning",
-    metrics: "6 requests · 55,207 output tokens · $1.76",
-    steps: [
-      "Analyze the hybrid game and identify the controller branches.",
-      "Propose the full precondition as the main loop invariant.",
-      "Discharge the easy f = 0 branch with differential cuts.",
-      "Use KeYmaera X feedback to repair branch structure and strengthen differential arguments.",
-      "Close the remaining f = F branch and replay the complete checked tactic.",
-    ],
-    excerpt: "unfold;\\nloop(\\\"discharged<=maxDischarge & (absorbed>=minAbsorbed | ...)\\\", 1); <(\\n  QE(\\\"Z3\\\"),\\n  QE(\\\"Z3\\\"),\\n  unfold; <(\\n    dC(\\\"absorbed>=minAbsorbed\\\", 1); <( ... )\\n  )\\n)",
-  },
-  {
-    title: "Lotka–Volterra synthesis",
-    type: "Synthesis",
-    outcome: "Control envelope synthesized",
-    model: "GPT-5",
-    metrics: "Full pipeline · formally checked subvalue map",
-    steps: [
-      "Analyze Angel and Demon choices in the game loop.",
-      "Work backward from the population-safety postcondition.",
-      "Propose loop and ODE subvalues for the nonlinear dynamics.",
-      "Invoke interactive proving where automatic subvalue checks fail.",
-      "Backtrack to repair candidates, then return the verified control envelope.",
-    ],
-    excerpt: "The trace alternates backward subvalue computation with proof checks. Each proposed invariant or differential precondition is accepted only after KeYmaera X or Z3 validates its proof obligation.",
-  },
-];
-
 fs.writeFileSync(path.join(out, "content.json"), JSON.stringify({
-  prompts, cases, resultSets, traces,
+  prompts, cases, resultSets, verificationTraces,
   generatedFrom: "Artifact version 1, DOI 10.1184/R1/32248389.v1",
 }, null, 2));

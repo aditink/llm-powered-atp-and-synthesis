@@ -480,7 +480,8 @@
       "source": "Adapted from an ARCH-COMP nonlinear-dynamics benchmark with discrete control and adversarial game play added.",
       "program": "{\n    ? ( x>0 & y>0 & a>0 & b>0 & d>0 & g>0 & x>=xmin & y>=ymin );\n    {\n        { xadd := *; ? xadd >= 0; yadd := *; ? yadd >= 0; }^@;\n        x := x + xadd;\n        y := y + yadd;\n        {x' = a*x - b*x*y, y' = d*x*y - g*y};\n    }*\n}^@",
       "postcondition": "(x >= xmin & y >= ymin)",
-      "guideline": "Set the system to its equilibrium point as soon as possible, and assume what you must so that the equilibrium point is good enough to maintain the post condition."
+      "guideline": "Set the system to its equilibrium point as soon as possible, and assume what you must so that the equilibrium point is good enough to maintain the post condition.",
+      "verificationFormula": "(x <= g / d & y <= a / b & g / d >= xmin & a / b >= ymin & x > 0 & y > 0 & a > 0 & b > 0 & d > 0 & g > 0 & x>=xmin & y>=ymin) -> <{ { { xadd := *; ? xadd >= 0; yadd := *; ? yadd >= 0; }^@; x := x + xadd; y := y + yadd; {x' = a*x - b*x*y, y' = d*x*y - g*y}; }* }^@> (x >= xmin & y >= ymin)"
     },
     {
       "id": "train",
@@ -493,7 +494,8 @@
       "source": "Inspired by prior train air-brake verification, extended with rolling resistance and adversarial dynamics.",
       "program": "{\n    ? ( a0>0& b0>0& a1<0  & a2<0 & T>0 & Apb<0& pressureChangeRate<0 & vel>=0& brakeSlope=0& airBrake=0);\n    { t:=0; \n        { \n            {trainAcc:=*;?(-b0<=trainAcc & trainAcc<a0);brakeSlope:=0;airBrake:=0; }\n             ++ \n            { trainAcc:=-b0; brakeSlope:=pressureChangeRate; }\n        }^@; \n        { \n            {trainPos'=vel, vel'=trainAcc + a1*vel + a2*vel^2 + airBrake, airBrake'=brakeSlope, t'=1 & t<=T & vel>=0 & airBrake>=Apb} ++ \n            {trainPos'=vel, vel'=trainAcc + a1*vel + a2*vel^2 + airBrake, airBrake'=0, t'=1 & t<=T & vel>=0 & airBrake<=Apb} \n        }*\n    }* \n}^@",
       "postcondition": "end-trainPos > 0",
-      "guideline": "Find the control solution for when the train can stop by braking continuously, even conservatively ignoring rolling resistance and air brakes."
+      "guideline": "Find the control solution for when the train can stop by braking continuously, even conservatively ignoring rolling resistance and air brakes.",
+      "verificationFormula": "( end - trainPos - (vel^2/(2*b0)) > 0 & a0 > 0 & b0 > 0 & a1 < 0 & a2 < 0 & T > 0 & Apb < 0 & pressureChangeRate < 0 & vel >= 0) -> <{ ? ( a0>0& b0>0& a1<0  & a2<0 & T>0 & Apb<0& pressureChangeRate<0 & vel>=0& brakeSlope=0& airBrake=0); { t:=0; { {trainAcc:=*;?(-b0<=trainAcc & trainAcc<a0);brakeSlope:=0;airBrake:=0; } ++ { trainAcc:=-b0; brakeSlope:=pressureChangeRate; } }^@; { {trainPos'=vel, vel'=trainAcc + a1*vel + a2*vel^2 + airBrake, airBrake'=brakeSlope, t'=1 & t<=T & vel>=0 & airBrake>=Apb} ++ {trainPos'=vel, vel'=trainAcc + a1*vel + a2*vel^2 + airBrake, airBrake'=0, t'=1 & t<=T & vel>=0 & airBrake<=Apb} }* }* }^@> end-trainPos > 0"
     },
     {
       "id": "reaction",
@@ -506,7 +508,8 @@
       "source": "Based on a reactor setup from the hybrid-systems literature with an adversarial controller model.",
       "program": "{\n    ? ( A>0 & B>0 & kA>0 & kB>0 & kC>0 & kT>=0 & T>0 );\n    {\n        { isOn:=0; ++ isOn:=1; }\n        t:=0;\n        {\n            A' = - A*B*Temp*isOn*kA,\n            B' = - A*B*Temp*isOn*kB,\n            C' = A*B*Temp*isOn*kC,\n            Temp' = A*B*Temp*isOn*kT,\n            t' = 1\n            & t<=T & A>=0 & B>=0 & C>=0 & Temp>=0\n        };\n    }*\n}^@",
       "postcondition": "Temp<=Tmax",
-      "guideline": "Find the control solution for the situation where the reactant runs out before temperature can become too large."
+      "guideline": "Find the control solution for the situation where the reactant runs out before temperature can become too large.",
+      "verificationFormula": "(kA > 0 & kB > 0 & kC > 0 & kT >= 0 & T > 0 & A >= 0 & B >= 0 & C >= 0 & Temp >= 0 & (kB*A <= kA*B & kA*Temp + kT*A <= kA*Tmax | kA*B <= kB*A & kB*Temp + kT*B <= kB*Tmax)) -> < { { { isOn:=0; ++ isOn:=1; }; t:=0; { A' = - A*B*Temp*isOn*kA, B' = - A*B*Temp*isOn*kB, C' = A*B*Temp*isOn*kC, Temp' = A*B*Temp*isOn*kT, t' = 1 & t<=T & A>=0 & B>=0 & C>=0 & Temp>=0 }; }* }^@ > Temp<=Tmax"
     },
     {
       "id": "coolant",
@@ -519,7 +522,8 @@
       "source": "A deliberately difficult control-envelope problem; its manual proof required several attempts over three days.",
       "program": "{\n  ? T>0 & F>0 & minAbsorbed>0 & maxDischarge>0 & c1>0 & c2>0;\n  {\n    {\n      { ? absorbed>= minAbsorbed; f:=0; }\n      ++\n      { ? absorbed<minAbsorbed; f:=F; }\n    };\n    t:=0; {absorbed' = f*c1*tempDiff, discharged'=f, tempDiff' = -f*c2*tempDiff + generated, t'=1, timer'=-1 & t<=T}\n  }*\n}^@",
       "postcondition": "discharged<=maxDischarge & (timer>=0 | absorbed>= minAbsorbed)",
-      "guideline": "Find the solution where initially enough heat has not been absorbed, but over time, enough is absorbed before the timer requirement or discharge capacity can be exceeded."
+      "guideline": "Find the solution where initially enough heat has not been absorbed, but over time, enough is absorbed before the timer requirement or discharge capacity can be exceeded.",
+      "verificationFormula": "(discharged <= maxDischarge & (absorbed >= minAbsorbed | (timer >= 0 & ((tempDiff <= generated/(F*c2) & c1*tempDiff*(maxDischarge - discharged - F*T) >= minAbsorbed - absorbed & timer*c1*tempDiff*F >= minAbsorbed - absorbed) | (tempDiff > generated/(F*c2) & c1*(generated/(F*c2))*(maxDischarge - discharged - F*T) >= minAbsorbed - absorbed & timer*c1*generated/c2 >= minAbsorbed - absorbed)))) & F > 0 & c1 > 0 & c2 > 0 & T > 0) -> < { { { {?absorbed>=minAbsorbed; f:=0;} ++ {?absorbed<minAbsorbed; f:=F;} }; t:=0; {absorbed' = f*c1*tempDiff, discharged'=f, tempDiff' = -f*c2*tempDiff + generated, t'=1, timer'=-1 & t<=T} }* }^@ > (discharged<=maxDischarge & (timer>=0 | absorbed>= minAbsorbed))"
     },
     {
       "id": "vanderpol",
@@ -532,7 +536,8 @@
       "source": "Adapted from an ARCH-COMP benchmark with adversarial dynamics and a proof-relevant loop structure added.",
       "program": "x1:=*;\nx2:=*;\ny1:=*;\ny2:=*;\n{ ? m > 0 & b > 0; \n    { \n        { x1' = y1, y1' = m*(1-x1^2)*y1 + b*(x2-x1) - x1, x2' = y2, y2' = m*(1-x2^2)*y2 - b*(x2-x1) - x2, t' = 1 }\n    }* \n}^@",
       "postcondition": "x1+x2<=xmax",
-      "guideline": "Keep the two oscillators in antiphase, maintaining the postcondition this way."
+      "guideline": "Keep the two oscillators in antiphase, maintaining the postcondition this way.",
+      "verificationFormula": "xmax>0 -> <x1:=*; x2:=*; y1:=*; y2:=*; { ? m > 0 & b > 0; { { x1' = y1, y1' = m*(1-x1^2)*y1 + b*(x2-x1) - x1, x2' = y2, y2' = m*(1-x2^2)*y2 - b*(x2-x1) - x2, t' = 1 } }* }^@> (x1+x2<=xmax)"
     }
   ],
   "resultSets": [
@@ -1792,36 +1797,56 @@
       ]
     }
   ],
-  "traces": [
+  "verificationTraces": [
     {
-      "title": "Coolant verification",
-      "type": "Verification",
-      "outcome": "Proof found",
-      "model": "GPT-5.5, high reasoning",
-      "metrics": "6 requests · 55,207 output tokens · $1.76",
-      "steps": [
-        "Analyze the hybrid game and identify the controller branches.",
-        "Propose the full precondition as the main loop invariant.",
-        "Discharge the easy f = 0 branch with differential cuts.",
-        "Use KeYmaera X feedback to repair branch structure and strengthen differential arguments.",
-        "Close the remaining f = F branch and replay the complete checked tactic."
-      ],
-      "excerpt": "unfold;\\nloop(\\\"discharged<=maxDischarge & (absorbed>=minAbsorbed | ...)\\\", 1); <(\\n  QE(\\\"Z3\\\"),\\n  QE(\\\"Z3\\\"),\\n  unfold; <(\\n    dC(\\\"absorbed>=minAbsorbed\\\", 1); <( ... )\\n  )\\n)"
+      "benchmark": "lotka",
+      "formula": "(x <= g / d & y <= a / b & g / d >= xmin & a / b >= ymin & x > 0 & y > 0 & a > 0 & b > 0 & d > 0 & g > 0 & x>=xmin & y>=ymin) -> <{ { { xadd := *; ? xadd >= 0; yadd := *; ? yadd >= 0; }^@; x := x + xadd; y := y + yadd; {x' = a*x - b*x*y, y' = d*x*y - g*y}; }* }^@> (x >= xmin & y >= ymin)",
+      "tactic": "unfold;\nloop(\"x <= g/d & y <= a/b & g/d >= xmin & a/b >= ymin & x > 0 & y > 0 & a > 0 & b > 0 & d > 0 & g > 0 & x >= xmin & y >= ymin\", 1);\n<(\n  QE(\"Z3\"),\n  unfold;\n  existsR(\"g/d-x\", 1);\n  unfold;\n  <(\n    QE(\"Z3\"),\n    existsR(\"a/b-y\", 1);\n    unfold;\n    <(\n      QE(\"Z3\"),\n      unfold;\n      print(\"State before ODE cut after choosing xadd and yadd\");\n      dC(\"((d*x-g)^2+(b*y-a)^2)=0\", 1);\n      <(\n        dW(1); QE(\"Z3\"),\n        dbx(\"2*(d*x-g)*(b*y-a)*(b*y-d*x)/((d*x-g)^2+(b*y-a)^2)\", 1)\n      )\n    )\n  ),\n  QE(\"Z3\")\n)",
+      "model": "GPT-5.5",
+      "reasoning": "High",
+      "requests": "3",
+      "outputTokens": "300000",
+      "cost": "1.0817409999999998"
     },
     {
-      "title": "Lotka–Volterra synthesis",
-      "type": "Synthesis",
-      "outcome": "Control envelope synthesized",
-      "model": "GPT-5",
-      "metrics": "Full pipeline · formally checked subvalue map",
-      "steps": [
-        "Analyze Angel and Demon choices in the game loop.",
-        "Work backward from the population-safety postcondition.",
-        "Propose loop and ODE subvalues for the nonlinear dynamics.",
-        "Invoke interactive proving where automatic subvalue checks fail.",
-        "Backtrack to repair candidates, then return the verified control envelope."
-      ],
-      "excerpt": "The trace alternates backward subvalue computation with proof checks. Each proposed invariant or differential precondition is accepted only after KeYmaera X or Z3 validates its proof obligation."
+      "benchmark": "coolant",
+      "formula": "(discharged <= maxDischarge & (absorbed >= minAbsorbed | (timer >= 0 & ((tempDiff <= generated/(F*c2) & c1*tempDiff*(maxDischarge - discharged - F*T) >= minAbsorbed - absorbed & timer*c1*tempDiff*F >= minAbsorbed - absorbed) | (tempDiff > generated/(F*c2) & c1*(generated/(F*c2))*(maxDischarge - discharged - F*T) >= minAbsorbed - absorbed & timer*c1*generated/c2 >= minAbsorbed - absorbed)))) & F > 0 & c1 > 0 & c2 > 0 & T > 0) -> < { { { {?absorbed>=minAbsorbed; f:=0;} ++ {?absorbed<minAbsorbed; f:=F;} }; t:=0; {absorbed' = f*c1*tempDiff, discharged'=f, tempDiff' = -f*c2*tempDiff + generated, t'=1, timer'=-1 & t<=T} }* }^@ > (discharged<=maxDischarge & (timer>=0 | absorbed>= minAbsorbed))",
+      "tactic": "unfold;\nloop(\"discharged<=maxDischarge & (absorbed>=minAbsorbed | (timer>=0 & ((tempDiff<=generated/(F*c2) & c1*tempDiff*(maxDischarge-discharged-F*T)>=minAbsorbed-absorbed & timer*c1*tempDiff*F>=minAbsorbed-absorbed) | (tempDiff>generated/(F*c2) & c1*(generated/(F*c2))*(maxDischarge-discharged-F*T)>=minAbsorbed-absorbed & timer*c1*generated/c2>=minAbsorbed-absorbed)))) & F>0 & c1>0 & c2>0 & T>0\", 1);\n<(\n  QE(\"Z3\"),\n  unfold; QE(\"Z3\"),\n  unfold;\n  <(\n    dC(\"absorbed>=minAbsorbed\", 1); <(\n      dC(\"discharged<=maxDischarge\", 1); <(\n        dW(1); QE(\"Z3\"),\n        dIRule(1); <(\n          QE(\"Z3\"),\n          unfold; QE(\"Z3\")\n        )\n      ),\n      dIRule(1); <(\n        QE(\"Z3\"),\n        unfold; QE(\"Z3\")\n      )\n    ),\n    orL(-8); <(\n      hideR(1); QE(\"Z3\"),\n      andL(-8);\n      orL(-13); <(\n        discreteGhost(\"absorbed\", \"absL\", 1);\n        discreteGhost(\"discharged\", \"disL\", 1);\n        discreteGhost(\"timer\", \"timL\", 1);\n        discreteGhost(\"tempDiff\", \"tmpL\", 1);\n        cut(\"absL<minAbsorbed & timL>=0 & tmpL>=0 & tmpL<=generated/(F*c2) & maxDischarge-disL-F*T>=0 & c1*tmpL*(maxDischarge-disL-F*T)>=minAbsorbed-absL & timL*c1*tmpL*F>=minAbsorbed-absL & disL<=maxDischarge\"); <(\n          dC(\"t>=0\", 1); <(\n            dC(\"generated/(F*c2)-tempDiff>=0\", 1); <(\n              dC(\"tempDiff-tmpL>=0\", 1); <(\n                dC(\"discharged=disL+F*t\", 1); <(\n                  dC(\"timer=timL-t\", 1); <(\n                    dC(\"absorbed>=absL+F*c1*tmpL*t\", 1); <(\n                      dW(1); QE(\"Z3\"),\n                      dIRule(1); <(\n                        QE(\"Z3\"),\n                        unfold; QE(\"Z3\")\n                      )\n                    ),\n                    dIRule(1); <(\n                      QE(\"Z3\"),\n                      unfold; QE(\"Z3\")\n                    )\n                  ),\n                  dIRule(1); <(\n                    QE(\"Z3\"),\n                    unfold; QE(\"Z3\")\n                  )\n                ),\n                dIRule(1); <(\n                  QE(\"Z3\"),\n                  unfold; QE(\"Z3\")\n                )\n              ),\n              dbx(\"-F*c2\", 1)\n            ),\n            dIRule(1); <(\n              QE(\"Z3\"),\n              unfold; QE(\"Z3\")\n            )\n          ),\n          hideR(1); QE(\"Z3\")\n        ),\n        discreteGhost(\"absorbed\", \"absH\", 1);\n        discreteGhost(\"discharged\", \"disH\", 1);\n        discreteGhost(\"timer\", \"timH\", 1);\n        discreteGhost(\"tempDiff\", \"tmpH\", 1);\n        cut(\"absH<minAbsorbed & timH>=0 & tmpH>generated/(F*c2) & generated/(F*c2)>=0 & generated/c2>=0 & maxDischarge-disH-F*T>=0 & c1*(generated/(F*c2))*(maxDischarge-disH-F*T)>=minAbsorbed-absH & timH*c1*generated/c2>=minAbsorbed-absH & disH<=maxDischarge\"); <(\n          dC(\"t>=0\", 1); <(\n            dC(\"tempDiff-generated/(F*c2)>0\", 1); <(\n              dC(\"discharged=disH+F*t\", 1); <(\n                dC(\"timer=timH-t\", 1); <(\n                  dC(\"absorbed>=absH+c1*generated/c2*t\", 1); <(\n                    dW(1); QE(\"Z3\"),\n                    dIRule(1); <(\n                      QE(\"Z3\"),\n                      unfold; QE(\"Z3\")\n                    )\n                  ),\n                  dIRule(1); <(\n                    QE(\"Z3\"),\n                    unfold; QE(\"Z3\")\n                  )\n                ),\n                dIRule(1); <(\n                  QE(\"Z3\"),\n                  unfold; QE(\"Z3\")\n                )\n              ),\n              dbx(\"-F*c2\", 1)\n            ),\n            dIRule(1); <(\n              QE(\"Z3\"),\n              unfold; QE(\"Z3\")\n            )\n          ),\n          hideR(1); QE(\"Z3\")\n        )\n      )\n    )\n  )\n)",
+      "model": "GPT-5.5",
+      "reasoning": "High",
+      "requests": "7",
+      "outputTokens": "300000",
+      "cost": "2.0169029999999997"
+    },
+    {
+      "benchmark": "reaction",
+      "formula": "(kA > 0 & kB > 0 & kC > 0 & kT >= 0 & T > 0 & A >= 0 & B >= 0 & C >= 0 & Temp >= 0 & (kB*A <= kA*B & kA*Temp + kT*A <= kA*Tmax | kA*B <= kB*A & kB*Temp + kT*B <= kB*Tmax)) -> < { { { isOn:=0; ++ isOn:=1; }; t:=0; { A' = - A*B*Temp*isOn*kA, B' = - A*B*Temp*isOn*kB, C' = A*B*Temp*isOn*kC, Temp' = A*B*Temp*isOn*kT, t' = 1 & t<=T & A>=0 & B>=0 & C>=0 & Temp>=0 }; }* }^@ > Temp<=Tmax",
+      "tactic": "unfold;\nloop(\"kA>0&kB>0&kC>0&kT>=0&T>0&A>=0&B>=0&C>=0&Temp>=0&((kB*A<=kA*B&kA*Temp+kT*A<=kA*Tmax)|(kA*B<=kB*A&kB*Temp+kT*B<=kB*Tmax))\", 1); <(\n  QE(\"Z3\"),\n  unfold; QE(\"Z3\"),\n  unfold; <(\n    orL(-16); <(\n      dC(\"kB*A<=kA*B\", 1); <(\n        dC(\"kA*Temp+kT*A<=kA*Tmax\", 1); <(\n          dW(1); QE(\"Z3\"),\n          dIRule(1); <(\n            unfold; QE(\"Z3\"),\n            unfold; QE(\"Z3\")\n          )\n        ),\n        dIRule(1); <(\n          unfold; QE(\"Z3\"),\n          unfold; QE(\"Z3\")\n        )\n      ),\n      dC(\"kA*B<=kB*A\", 1); <(\n        dC(\"kB*Temp+kT*B<=kB*Tmax\", 1); <(\n          dW(1); QE(\"Z3\"),\n          dIRule(1); <(\n            unfold; QE(\"Z3\"),\n            unfold; QE(\"Z3\")\n          )\n        ),\n        dIRule(1); <(\n          unfold; QE(\"Z3\"),\n          unfold; QE(\"Z3\")\n        )\n      )\n    ),\n    orL(-16); <(\n      dC(\"kB*A<=kA*B\", 1); <(\n        dC(\"kA*Temp+kT*A<=kA*Tmax\", 1); <(\n          dW(1); QE(\"Z3\"),\n          dIRule(1); <(\n            unfold; QE(\"Z3\"),\n            unfold; QE(\"Z3\")\n          )\n        ),\n        dIRule(1); <(\n          unfold; QE(\"Z3\"),\n          unfold; QE(\"Z3\")\n        )\n      ),\n      dC(\"kA*B<=kB*A\", 1); <(\n        dC(\"kB*Temp+kT*B<=kB*Tmax\", 1); <(\n          dW(1); QE(\"Z3\"),\n          dIRule(1); <(\n            unfold; QE(\"Z3\"),\n            unfold; QE(\"Z3\")\n          )\n        ),\n        dIRule(1); <(\n          unfold; QE(\"Z3\"),\n          unfold; QE(\"Z3\")\n        )\n      )\n    )\n  )\n)",
+      "model": "GPT-5.5",
+      "reasoning": "High",
+      "requests": "3",
+      "outputTokens": "300000",
+      "cost": "0.664028"
+    },
+    {
+      "benchmark": "vanderpol",
+      "formula": "xmax>0 -> <x1:=*; x2:=*; y1:=*; y2:=*; { ? m > 0 & b > 0; { { x1' = y1, y1' = m*(1-x1^2)*y1 + b*(x2-x1) - x1, x2' = y2, y2' = m*(1-x2^2)*y2 - b*(x2-x1) - x2, t' = 1 } }* }^@> (x1+x2<=xmax)",
+      "tactic": "unfold;\nexistsR(\"0\", 1);\nunfold;\nexistsR(\"0\", 1);\nunfold;\nexistsR(\"0\", 1);\nunfold;\nexistsR(\"0\", 1);\nunfold;\nloop(\"xmax>0&x1=0&x2=0&y1=0&y2=0\", 1); <(\n  QE(\"Z3\");\n  print(\"Loop init branch after QE\"),\n  QE(\"Z3\");\n  print(\"Loop post branch after QE\"),\n  auto;\n  print(\"Loop step branch after auto\")\n)",
+      "model": "GPT-5.5",
+      "reasoning": "High",
+      "requests": "3",
+      "outputTokens": "300000",
+      "cost": "0.821679"
+    },
+    {
+      "benchmark": "train",
+      "formula": "( end - trainPos - (vel^2/(2*b0)) > 0 & a0 > 0 & b0 > 0 & a1 < 0 & a2 < 0 & T > 0 & Apb < 0 & pressureChangeRate < 0 & vel >= 0) -> <{ ? ( a0>0& b0>0& a1<0  & a2<0 & T>0 & Apb<0& pressureChangeRate<0 & vel>=0& brakeSlope=0& airBrake=0); { t:=0; { {trainAcc:=*;?(-b0<=trainAcc & trainAcc<a0);brakeSlope:=0;airBrake:=0; } ++ { trainAcc:=-b0; brakeSlope:=pressureChangeRate; } }^@; { {trainPos'=vel, vel'=trainAcc + a1*vel + a2*vel^2 + airBrake, airBrake'=brakeSlope, t'=1 & t<=T & vel>=0 & airBrake>=Apb} ++ {trainPos'=vel, vel'=trainAcc + a1*vel + a2*vel^2 + airBrake, airBrake'=0, t'=1 & t<=T & vel>=0 & airBrake<=Apb} }* }* }^@> end-trainPos > 0",
+      "tactic": "unfold;\nloop(\"2*b0*(end-trainPos)-vel^2>0&a0>0&b0>0&a1<0&a2<0&T>0&Apb<0&pressureChangeRate<0&vel>=0&airBrake<=0\", 1); <(\n  QE(\"Z3\"),\n  unfold;\n  hideR(1);\n  unfold;\n  loop(\"2*b0*(end-trainPos)-vel^2>0&a0>0&b0>0&a1<0&a2<0&T>0&Apb<0&pressureChangeRate<0&vel>=0&airBrake<=0\", 1); <(\n    QE(\"Z3\"),\n    QE(\"Z3\"),\n    unfold; <(\n      dC(\"airBrake<=0\", 1); <(\n        dC(\"2*b0*(end-trainPos)-vel^2>0\", 1); <(\n          dW(1); QE(\"Z3\"),\n          dbx(\"0\", 1)\n        ),\n        dIRule(1); <(\n          QE(\"Z3\"),\n          unfold; QE(\"Z3\")\n        )\n      ),\n      dC(\"airBrake<=0\", 1); <(\n        dC(\"2*b0*(end-trainPos)-vel^2>0\", 1); <(\n          dW(1); QE(\"Z3\"),\n          dbx(\"0\", 1)\n        ),\n        dIRule(1); <(\n          QE(\"Z3\"),\n          unfold; QE(\"Z3\")\n        )\n      )\n    )\n  ),\n  QE(\"Z3\")\n)",
+      "model": "GPT-5.5",
+      "reasoning": "High",
+      "requests": "3",
+      "outputTokens": "300000",
+      "cost": "0.974502"
     }
   ],
   "generatedFrom": "Artifact version 1, DOI 10.1184/R1/32248389.v1"
