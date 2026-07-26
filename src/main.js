@@ -25,9 +25,8 @@ function navLink(id, label) {
 function shell(content) {
   app.innerHTML = `
     <header class="site-header">
-      <a class="brand" href="#overview" aria-label="Cleopatra home">
-        <span class="brand-mark">C</span>
-        <span><strong>Cleopatra</strong><small>Paper supplement</small></span>
+      <a class="brand" href="#overview" aria-label="Paper supplement home">
+        <strong>LLM-Powered Automatic Theorem Proving and Synthesis for Hybrid Systems and Games</strong>
       </a>
       <button class="icon-button mobile-menu" aria-label="Open navigation">${icon("Menu", 20)}</button>
       <nav aria-label="Primary">
@@ -43,7 +42,7 @@ function shell(content) {
     </header>
     <main id="main">${content}</main>
     <footer>
-      <div><strong>Cleopatra</strong><span>ControL EnvelOPe And Theorem Revision Automation</span></div>
+      <div><strong>Paper supplement</strong><span>LLM-Powered Automatic Theorem Proving and Synthesis for Hybrid Systems and Games</span></div>
       <p>Supplementary material for the paper. No analytics or visitor tracking.</p>
       <div class="footer-links"><a href="${PAPER}">Paper</a><a href="${ARTIFACT}">Artifact</a><a href="https://github.com/aditink/cleopatra-paper">Source</a></div>
     </footer>`;
