@@ -9,7 +9,7 @@ const PAPER = "https://arxiv.org/abs/2603.00737";
 const data = await fetch(`${BASE}data/content.json`).then((r) => r.json());
 
 const icons = { ArrowUpRight, BookOpen, Check, ChevronDown, Clipboard, Code2, Database, Download, ExternalLink, FileText, FlaskConical, Github, Menu, Search, X };
-let state = { page: location.hash.slice(1) || "overview", prompt: "AnalyzeGameLoop", promptFilter: "primary", promptSearch: "", result: "verification", caseTabs: {} };
+let state = { page: location.hash.slice(1) || "overview", tracePipeline: "verification", traceCase: "lotka", result: "verification", caseTabs: {} };
 
 const app = document.querySelector("#app");
 
@@ -32,8 +32,8 @@ function shell(content) {
       <button class="icon-button mobile-menu" aria-label="Open navigation">${icon("Menu", 20)}</button>
       <nav aria-label="Primary">
         ${navLink("overview", "Overview")}
-        ${navLink("prompts", "Prompts & traces")}
         ${navLink("cases", "Case studies")}
+        ${navLink("prompts", "Prompts & traces")}
         ${navLink("results", "Results")}
       </nav>
       <div class="header-links">
@@ -91,39 +91,48 @@ function promptMarkdown(value) {
   return marked.parse(value || "_This prompt has no content for this message role._");
 }
 function prompts() {
-  const q = state.promptSearch.toLowerCase();
-  const visible = data.prompts.filter((p) =>
-    (state.promptFilter === "all" || p.category === state.promptFilter) &&
-    (!q || `${p.title} ${p.description} ${p.pipeline}`.toLowerCase().includes(q)));
-  const selected = data.prompts.find((p) => p.id === state.prompt) || visible[0] || data.prompts[0];
+  const selectedCase = data.cases.find((item) => item.id === state.traceCase) || data.cases[0];
+  const trace = data.exampleTraces.find((item) =>
+    item.pipeline === state.tracePipeline && item.benchmark === selectedCase.id);
+  const traceBody = trace ? `
+    <header>
+      <div><span class="tag ${trace.pipeline}">${trace.pipeline}</span><h2>${selectedCase.title}</h2><p>Successful ${trace.model} replay cache · ${trace.interactions.length} recorded prompt/response exchanges</p></div>
+      <a class="button" href="${ARTIFACT}" target="_blank">${icon("Database")} Complete cache</a>
+    </header>
+    <div class="trace-messages">${trace.interactions.map((turn, index) => `
+      <details class="trace-turn" ${index === 0 ? "open" : ""}>
+        <summary><span>Exchange ${String(index + 1).padStart(2, "0")}</span><small>${escape(turn.prompt.split("\n").find(Boolean)?.slice(0, 90) || "LLM query")}</small>${icon("ChevronDown", 16)}</summary>
+        <section class="message"><div class="message-label"><span>Prompt</span><small>Instantiated user message</small></div><div class="markdown">${promptMarkdown(turn.prompt)}</div></section>
+        <section class="message response"><div class="message-label"><span>LLM response</span><small>${trace.model}</small></div><div class="markdown">${promptMarkdown(turn.response)}</div></section>
+      </details>`).join("")}</div>` : `
+    <div class="trace-empty">
+      <span class="tag synthesis">Synthesis</span>
+      <h2>${selectedCase.title}</h2>
+      <p>No successful synthesis trace is available for Coolant. Both full-pipeline runs failed to verify a synthesized control envelope, as reported in the paper.</p>
+      <a class="button" href="#results">${icon("Database")} View synthesis results</a>
+    </div>`;
   shell(`
-    <section class="page-head"><p class="eyebrow">Published templates and checked runs</p><h1>Prompts & traces</h1><p>Browse every distinct production query and shared guide, then inspect one representative successful verification trace for each benchmark.</p></section>
-    <section class="prompt-workspace">
-      <aside class="prompt-sidebar">
-        <label class="search">${icon("Search")}<input id="prompt-search" type="search" value="${escape(state.promptSearch)}" placeholder="Search prompts" /></label>
-        <div class="segments" role="group" aria-label="Prompt category">
-          ${[["primary","Production"],["shared","Guides"],["additional","Additional"],["all","All"]].map(([id,label]) => `<button class="${state.promptFilter===id?"active":""}" data-filter="${id}">${label}</button>`).join("")}
-        </div>
-        <p class="result-count">${visible.length} templates</p>
-        <div class="prompt-list">${visible.map((p) => `<button class="${selected.id===p.id?"active":""}" data-prompt="${p.id}"><span>${p.title}</span><small>${p.pipeline}</small></button>`).join("")}</div>
-      </aside>
-      <article class="prompt-reader">
-        <header><div><span class="tag ${selected.pipeline}">${selected.pipeline}</span><h2>${selected.title}</h2><p>${selected.description}</p></div><div class="reader-actions"><button class="icon-button copy-prompt" title="Copy prompt" aria-label="Copy prompt">${icon("Clipboard")}</button>${selected.rawFiles.map((f) => `<a class="icon-button" title="Download ${f}" aria-label="Download ${f}" href="${BASE}prompts/${f}" download>${icon("Download")}</a>`).join("")}</div></header>
-        ${selected.system ? `<section class="message"><div class="message-label"><span>System</span><small>${selected.id}.system.jinja</small></div><div class="markdown">${promptMarkdown(selected.system)}</div></section>` : ""}
-        ${selected.instance ? `<section class="message"><div class="message-label"><span>User template</span><small>${selected.id}.instance.jinja</small></div><div class="markdown">${promptMarkdown(selected.instance)}</div></section>` : ""}
-        ${selected.shared ? `<section class="message"><div class="message-label"><span>Shared guide</span><small>${selected.id}.jinja</small></div><div class="markdown">${promptMarkdown(selected.shared)}</div></section>` : ""}
-      </article>
+    <section class="page-head"><p class="eyebrow">Published runs</p><h1>Example traces</h1><p>Example traces of verification and synthesis, showing the instantiated prompts and LLM responses from archived replay caches.</p></section>
+    <section class="trace-pipeline-tabs">
+      <div class="view-tabs" role="tablist" aria-label="Pipeline">
+        ${["verification", "synthesis"].map((pipeline) => `<button role="tab" aria-selected="${state.tracePipeline === pipeline}" class="${state.tracePipeline === pipeline ? "active" : ""}" data-trace-pipeline="${pipeline}">${pipeline[0].toUpperCase() + pipeline.slice(1)}</button>`).join("")}
+      </div>
     </section>
-    <section class="section benchmark-traces">
-      <div class="section-heading"><p class="eyebrow">Successful examples</p><h2>One checked trace per problem</h2><p>Each example is taken from a successful GPT-5.5 high-reasoning run. The displayed tactic is the final script accepted by KeYmaera X; complete interaction caches are available in the artifact.</p></div>
-      <div class="trace-grid">${data.cases.map((c) => {
-        const trace = data.verificationTraces.find((item) => item.benchmark === c.id);
-        if (!trace) return "";
-        return `<article class="trace-card"><header><div><span class="tag verification">Verification</span><h3>${c.title}</h3></div><span class="trace-outcome">${icon("Check",14)} Proof checked</span></header><p>${trace.requests} requests · ${Number(trace.outputTokens).toLocaleString()} output tokens · $${Number(trace.cost).toFixed(2)}</p><details><summary>View theorem and final tactic ${icon("ChevronDown",16)}</summary><h4>Theorem</h4><pre><code>${escape(trace.formula)}</code></pre><h4>Accepted tactic</h4><pre><code>${escape(trace.tactic)}</code></pre></details></article>`;
-      }).join("")}</div>
-      <a class="button" href="${ARTIFACT}" target="_blank">${icon("Database")} Open complete caches</a>
+    <section class="trace-workspace">
+      <aside class="trace-sidebar">
+        <p class="result-count">Case studies</p>
+        <div class="prompt-list">${data.cases.map((item, index) => `<button class="${selectedCase.id === item.id ? "active" : ""}" data-trace-case="${item.id}"><small>0${index + 1}</small><span>${item.title}</span></button>`).join("")}</div>
+      </aside>
+      <article class="trace-reader">${traceBody}</article>
     </section>`);
-  bindPrompt(selected);
+  document.querySelectorAll("[data-trace-pipeline]").forEach((button) => button.onclick = () => {
+    state.tracePipeline = button.dataset.tracePipeline;
+    prompts();
+  });
+  document.querySelectorAll("[data-trace-case]").forEach((button) => button.onclick = () => {
+    state.traceCase = button.dataset.traceCase;
+    prompts();
+  });
 }
 
 function cases() {

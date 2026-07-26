@@ -46,10 +46,14 @@ for (const route of ["cases", "results", "prompts"]) {
     await page.screenshot({ path: "/tmp/cleopatra-results.png", fullPage: true });
   }
   if (route === "prompts") {
-    pages.prompts.traces = await page.locator(".trace-card").count();
-    pages.prompts.nonemptyTactics = await page.locator(".trace-card pre").evaluateAll(
-      (nodes) => nodes.filter((node) => node.textContent.trim().length > 0).length,
-    );
+    pages.prompts.pipelineTabs = await page.locator("[data-trace-pipeline]").count();
+    pages.prompts.caseStudies = await page.locator("[data-trace-case]").count();
+    pages.prompts.verificationExchanges = await page.locator(".trace-turn").count();
+    await page.locator('[data-trace-pipeline="synthesis"]').click();
+    pages.prompts.synthesisExchanges = await page.locator(".trace-turn").count();
+    await page.locator('[data-trace-case="coolant"]').click();
+    pages.prompts.coolantNotice = await page.locator(".trace-empty").textContent();
+    await page.screenshot({ path: "/tmp/cleopatra-traces-page.png", fullPage: true });
   }
 }
 await page.goto("http://127.0.0.1:5173/cleopatra-paper/#overview", { waitUntil: "networkidle" });
