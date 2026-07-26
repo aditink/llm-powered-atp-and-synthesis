@@ -60,10 +60,11 @@ for (const route of ["cases", "results", "prompts"]) {
   }
 }
 await page.goto("http://127.0.0.1:5173/cleopatra-paper/#overview", { waitUntil: "networkidle" });
-await page.locator(".hero-citation summary").click();
 pages.overview = await page.evaluate(() => ({
   internalArtifactTab: [...document.querySelectorAll(".site-header nav a")].some((link) => link.textContent.trim() === "Artifact"),
   sections: document.querySelectorAll("main > section").length,
+  citationIsVisible: document.querySelector(".hero-citation pre")?.checkVisibility(),
+  citationIsInteractive: Boolean(document.querySelector(".hero-citation summary")),
   citation: document.querySelector(".hero-citation code")?.textContent,
 }));
 await page.screenshot({ path: "/tmp/cleopatra-home.png", fullPage: true });

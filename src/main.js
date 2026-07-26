@@ -63,8 +63,8 @@ function overview() {
           <a class="button primary" href="#prompts">${icon("Code2")} Browse examples</a>
           <a class="button" href="${ARTIFACT}" target="_blank">${icon("Download")} Get the artifact</a>
         </div>
-        <details class="hero-citation">
-          <summary>Cite this paper ${icon("ChevronDown", 16)}</summary>
+        <div class="hero-citation">
+          <p class="citation-label">Cite this paper</p>
           <pre><code>@INPROCEEDINGS{DBLP:conf/fmcad/KabraLMMP26,
   author        = {Kabra, Aditi and
                    Laurent, Jonathan and
@@ -80,7 +80,7 @@ function overview() {
   editor        = {Dutertre, Bruno and
                    K{\\\"{o}}nighofer, Bettina}
 }</code></pre>
-        </details>
+        </div>
       </div>
     </section>`);
 }
