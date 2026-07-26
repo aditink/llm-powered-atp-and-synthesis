@@ -27,6 +27,8 @@ function shell(content) {
     <header class="site-header">
       <a class="brand" href="#overview" aria-label="Paper supplement home">
         <strong>LLM-Powered Automatic Theorem Proving and Synthesis for Hybrid Systems and Games</strong>
+        <span class="brand-separator" aria-hidden="true">|</span>
+        <span class="brand-supplement">Paper supplement</span>
       </a>
       <button class="icon-button mobile-menu" aria-label="Open navigation">${icon("Menu", 20)}</button>
       <nav aria-label="Primary">
@@ -40,12 +42,7 @@ function shell(content) {
         <a href="${ARTIFACT}" target="_blank">Artifact ${icon("ArrowUpRight", 14)}</a>
       </div>
     </header>
-    <main id="main">${content}</main>
-    <footer>
-      <div><strong>Paper supplement</strong><span>LLM-Powered Automatic Theorem Proving and Synthesis for Hybrid Systems and Games</span></div>
-      <p>Supplementary material for the paper. No analytics or visitor tracking.</p>
-      <div class="footer-links"><a href="${PAPER}">Paper</a><a href="${ARTIFACT}">Artifact</a><a href="https://github.com/aditink/cleopatra-paper">Source</a></div>
-    </footer>`;
+    <main id="main">${content}</main>`;
   createIcons({ icons });
   bindShell();
 }

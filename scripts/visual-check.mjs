@@ -12,6 +12,8 @@ const desktop = await page.evaluate(() => ({
   title: document.title,
   bodyWidth: document.body.scrollWidth,
   viewportWidth: innerWidth,
+  footerPresent: Boolean(document.querySelector("footer")),
+  supplementLabel: document.querySelector(".brand-supplement")?.textContent,
   images: [...document.images].map((img) => ({ src: img.src, width: img.naturalWidth, height: img.naturalHeight })),
 }));
 await page.setViewportSize({ width: 390, height: 844 });
@@ -20,6 +22,7 @@ await page.screenshot({ path: "/tmp/cleopatra-mobile.png", fullPage: true });
 const mobile = await page.evaluate(() => ({
   bodyWidth: document.body.scrollWidth,
   viewportWidth: innerWidth,
+  supplementVisible: document.querySelector(".brand-supplement")?.checkVisibility(),
   promptTitle: document.querySelector(".prompt-reader h2")?.textContent,
 }));
 const pages = {};
