@@ -49,6 +49,9 @@ for (const route of ["cases", "results", "prompts"]) {
     pages.prompts.pipelineTabs = await page.locator("[data-trace-pipeline]").count();
     pages.prompts.caseStudies = await page.locator("[data-trace-case]").count();
     pages.prompts.verificationExchanges = await page.locator(".trace-turn").count();
+    await page.locator(".prover-exchange").first().click();
+    pages.prompts.proverLabels = await page.locator(".prover-exchange").first().locator(".message-label span").allTextContents();
+    pages.prompts.llmLabels = await page.locator(".llm-exchange").first().locator(".message-label span").allTextContents();
     await page.locator('[data-trace-pipeline="synthesis"]').click();
     pages.prompts.synthesisExchanges = await page.locator(".trace-turn").count();
     await page.locator('[data-trace-case="coolant"]').click();

@@ -98,12 +98,22 @@ function prompts() {
       <div><span class="tag ${trace.pipeline}">${trace.pipeline}</span><h2>${selectedCase.title}</h2><p>Successful ${trace.model} replay cache · ${trace.interactions.length} recorded prompt/response exchanges</p></div>
       <a class="button" href="${ARTIFACT}" target="_blank">${icon("Database")} Complete cache</a>
     </header>
-    <div class="trace-messages">${trace.interactions.map((turn, index) => `
-      <details class="trace-turn" ${index === 0 ? "open" : ""}>
-        <summary><span>Exchange ${String(index + 1).padStart(2, "0")}</span><small>${escape(turn.prompt.split("\n").find(Boolean)?.slice(0, 90) || "LLM query")}</small>${icon("ChevronDown", 16)}</summary>
-        <section class="message"><div class="message-label"><span>Prompt</span><small>Instantiated user message</small></div><div class="markdown">${promptMarkdown(turn.prompt)}</div></section>
-        <section class="message response"><div class="message-label"><span>LLM response</span><small>${trace.model}</small></div><div class="markdown">${promptMarkdown(turn.response)}</div></section>
-      </details>`).join("")}</div>` : `
+    <div class="trace-messages">${trace.interactions.map((turn, index) => {
+      const isProverExchange = turn.prompt.trimStart().startsWith("fun:");
+      const summary = isProverExchange
+        ? "KeYmaera X check"
+        : turn.prompt.split("\n").find(Boolean)?.slice(0, 90) || "LLM query";
+      const requestLabel = isProverExchange ? "Pipeline → KeYmaera X" : "Prompt";
+      const requestDetail = isProverExchange ? "Prover request" : "Instantiated user message";
+      const responseLabel = isProverExchange ? "KeYmaera X → pipeline" : "LLM response";
+      const responseDetail = isProverExchange ? "Formal checker feedback" : trace.model;
+      return `
+      <details class="trace-turn ${isProverExchange ? "prover-exchange" : "llm-exchange"}" ${index === 0 ? "open" : ""}>
+        <summary><span>Exchange ${String(index + 1).padStart(2, "0")}</span><small>${escape(summary)}</small><span class="exchange-kind">${isProverExchange ? "Prover" : "LLM"}</span>${icon("ChevronDown", 16)}</summary>
+        <section class="message"><div class="message-label"><span>${requestLabel}</span><small>${requestDetail}</small></div><div class="markdown">${promptMarkdown(turn.prompt)}</div></section>
+        <section class="message response"><div class="message-label"><span>${responseLabel}</span><small>${responseDetail}</small></div><div class="markdown">${promptMarkdown(turn.response)}</div></section>
+      </details>`;
+    }).join("")}</div>` : `
     <div class="trace-empty">
       <span class="tag synthesis">Synthesis</span>
       <h2>${selectedCase.title}</h2>
@@ -111,7 +121,7 @@ function prompts() {
       <a class="button" href="#results">${icon("Database")} View synthesis results</a>
     </div>`;
   shell(`
-    <section class="page-head"><p class="eyebrow">Published runs</p><h1>Example traces</h1><p>Example traces of verification and synthesis, showing the instantiated prompts and LLM responses from archived replay caches.</p></section>
+    <section class="page-head"><p class="eyebrow">Published runs</p><h1>Example traces</h1><p>Example traces of verification and synthesis, showing LLM prompts and responses alongside KeYmaera X requests and formal-checker feedback from archived replay caches.</p></section>
     <section class="trace-pipeline-tabs">
       <div class="view-tabs" role="tablist" aria-label="Pipeline">
         ${["verification", "synthesis"].map((pipeline) => `<button role="tab" aria-selected="${state.tracePipeline === pipeline}" class="${state.tracePipeline === pipeline ? "active" : ""}" data-trace-pipeline="${pipeline}">${pipeline[0].toUpperCase() + pipeline.slice(1)}</button>`).join("")}
