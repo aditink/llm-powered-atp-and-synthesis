@@ -1,4 +1,4 @@
-# Cleopatra Paper Supplement
+# LLM-Powered Automatic Theorem Proving and Synthesis for Hybrid Systems and Games
 
 Readable prompts, case studies, results, selected traces, and reproduction
 instructions for *LLM-Powered Automatic Theorem Proving and Synthesis for

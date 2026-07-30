@@ -1,7 +1,7 @@
 import { defineConfig } from "vite";
 
 export default defineConfig({
-  base: "/cleopatra-paper/",
+  base: "/llm-powered-automatic-theorem-proving-and-synthesis-for-hybrid-systems-and-games/",
   build: {
     target: "esnext",
   },
